@@ -4,7 +4,7 @@ import axios, {
 	type AxiosResponse,
 } from "axios";
 import { authStore } from "@/store/auth";
-import type { ApiResponse } from "@/types/api";
+import type { ApiResponse } from "@/types/api.types";
 
 interface CustomAxiosRequestConfig extends AxiosRequestConfig {
 	_retry?: boolean;
