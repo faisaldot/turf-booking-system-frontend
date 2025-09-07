@@ -1,5 +1,14 @@
-import axios, { type AxiosError, type AxiosResponse } from "axios";
+import axios, {
+	type AxiosError,
+	type AxiosRequestConfig,
+	type AxiosResponse,
+} from "axios";
+import { authStore } from "@/store/auth";
 import type { ApiResponse } from "@/types/api";
+
+interface CustomAxiosRequestConfig extends AxiosRequestConfig {
+	_retry?: boolean;
+}
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -11,7 +20,13 @@ export const api = axios.create({
 	},
 });
 
-const authStore = "";
+async function refreshAccessToken(refreshToken: string) {
+	const response = await api.post<ApiResponse<{ accessToken: string }>>(
+		"/auth/refresh-token",
+		{ refreshToken },
+	);
+	return response.data.data?.accessToken;
+}
 
 // Request interceptors for auth token
 api.interceptors.request.use(
@@ -29,7 +44,7 @@ api.interceptors.request.use(
 api.interceptors.response.use(
 	(response: AxiosResponse) => response,
 	async (error: AxiosError) => {
-		const originalRequest = error.config as any;
+		const originalRequest = error.config as CustomAxiosRequestConfig;
 
 		// Handle token refresh on 401 error
 		if (error.response?.status === 401 && !originalRequest._retry) {
@@ -39,16 +54,9 @@ api.interceptors.response.use(
 				const refreshToken = authStore.getState().refreshToken;
 				if (!refreshToken) throw new Error("No refresh token");
 
-				const response = await api.post<
-					ApiResponse<{
-						accessToken: string;
-					}>
-				>("/auth/refresh-token", {
-					refreshToken,
-				});
+				const newAccessToken = await refreshAccessToken(refreshToken);
 
-				const accessToken = response.data.data?.accessToken;
-				authStore.getState().setTokens(accessToken, refreshToken);
+				authStore.getState().setTokens(newAccessToken!, refreshToken);
 
 				return api(originalRequest);
 			} catch (refreshError) {
