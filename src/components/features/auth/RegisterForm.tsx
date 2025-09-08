@@ -11,10 +11,13 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { LoadingSpinner } from "@/components/ui/loading";
+import { useAuth } from "@/hooks/auth/useAuth";
 import { registerSchema } from "@/lib/validation";
 import type { RegisterData } from "@/types/api.types";
 
 export function RegisterForm() {
+	const { register, isLoading } = useAuth();
 	const form = useForm<RegisterData>({
 		resolver: zodResolver(registerSchema),
 		defaultValues: {
@@ -26,7 +29,7 @@ export function RegisterForm() {
 	});
 
 	const onSubmit = (data: RegisterData) => {
-		console.log(data);
+		register(data);
 	};
 
 	return (
@@ -39,7 +42,7 @@ export function RegisterForm() {
 						<FormItem>
 							<FormLabel>Name</FormLabel>
 							<FormControl>
-								<Input placeholder="Zihad Doe" {...field} />
+								<Input placeholder="Name" {...field} />
 							</FormControl>
 							<FormMessage />
 						</FormItem>
@@ -52,7 +55,7 @@ export function RegisterForm() {
 						<FormItem>
 							<FormLabel>Email</FormLabel>
 							<FormControl>
-								<Input placeholder="zihad@posh.com" {...field} />
+								<Input placeholder="me@example.com" {...field} />
 							</FormControl>
 							<FormMessage />
 						</FormItem>
@@ -65,14 +68,14 @@ export function RegisterForm() {
 						<FormItem>
 							<FormLabel>Password</FormLabel>
 							<FormControl>
-								<Input type="password" placeholder="••••••••" {...field} />
+								<Input type="password" placeholder="password" {...field} />
 							</FormControl>
 							<FormMessage />
 						</FormItem>
 					)}
 				/>
-				<Button type="submit" className="w-full">
-					Register
+				<Button type="submit" className="w-full cursor-pointer">
+					{isLoading ? <LoadingSpinner size="sm" /> : "Register"}
 				</Button>
 			</form>
 		</Form>

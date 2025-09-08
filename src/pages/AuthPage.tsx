@@ -10,9 +10,13 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
+import { useAuth } from "@/hooks/auth/useAuth";
 
 export default function AuthPage() {
 	const [isLogin, setIsLogin] = useState(true);
+
+	const { isLoading } = useAuth();
+
 	return (
 		<div className="flex justify-center items-center min-h-[calc(100vh-8rem)]">
 			<Card className="w-full max-w-md">
@@ -27,7 +31,12 @@ export default function AuthPage() {
 				</CardHeader>
 				<CardContent>{isLogin ? <LoginForm /> : <RegisterForm />}</CardContent>
 				<CardFooter className="flex-col">
-					<Button variant="link" onClick={() => setIsLogin(!isLogin)}>
+					<Button
+						variant="link"
+						onClick={() => setIsLogin(!isLogin)}
+						disabled={isLoading}
+						className="cursor-pointer"
+					>
 						{isLogin
 							? `Don't have an account? Sign Up`
 							: `Already have an account? Sign In`}

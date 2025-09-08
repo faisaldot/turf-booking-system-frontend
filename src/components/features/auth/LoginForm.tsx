@@ -1,7 +1,8 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Form, useForm } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import {
+	Form,
 	FormControl,
 	FormField,
 	FormItem,
@@ -9,10 +10,13 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { LoadingSpinner } from "@/components/ui/loading";
+import { useAuth } from "@/hooks/auth/useAuth";
 import { loginSchema } from "@/lib/validation";
 import type { LoginData } from "@/types/api.types";
 
 export default function LoginForm() {
+	const { login, isLoading } = useAuth();
 	const form = useForm<LoginData>({
 		resolver: zodResolver(loginSchema),
 		defaultValues: {
@@ -22,7 +26,7 @@ export default function LoginForm() {
 	});
 
 	const onSubmit = (data: LoginData) => {
-		console.log(data);
+		login(data);
 	};
 
 	return (
@@ -35,7 +39,7 @@ export default function LoginForm() {
 						<FormItem>
 							<FormLabel>Email</FormLabel>
 							<FormControl>
-								<Input placeholder="zihad@posh.com" {...field} />
+								<Input placeholder="me@example.com" {...field} />
 							</FormControl>
 							<FormMessage />
 						</FormItem>
@@ -48,14 +52,14 @@ export default function LoginForm() {
 						<FormItem>
 							<FormLabel>Password</FormLabel>
 							<FormControl>
-								<Input type="password" placeholder="••••••••" {...field} />
+								<Input type="password" placeholder="password" {...field} />
 							</FormControl>
 							<FormMessage />
 						</FormItem>
 					)}
 				/>
-				<Button type="submit" className="w-full">
-					Sign In
+				<Button type="submit" className="w-full cursor-pointer">
+					{isLoading ? <LoadingSpinner size="sm" /> : "Sign In"}
 				</Button>
 			</form>
 		</Form>
