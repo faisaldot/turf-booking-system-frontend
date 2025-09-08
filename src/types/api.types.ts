@@ -60,7 +60,7 @@ export interface Turf {
 		city: string;
 	};
 	description: string;
-	image: string[];
+	images: string[];
 	amenities: string[];
 	operatingHours: {
 		start: string;
