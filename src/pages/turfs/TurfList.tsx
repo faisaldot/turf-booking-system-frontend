@@ -10,7 +10,7 @@ import {
 	CardFooter,
 	CardHeader,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+
 import { TurfCardSkeleton } from "@/components/ui/loading";
 import api from "@/lib/api";
 import type { ApiResponse, Turf } from "@/types/api.types";

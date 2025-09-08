@@ -4,8 +4,8 @@ import ProtectedRoute from "./components/layout/ProtectedRoute";
 import AuthPage from "./pages/AuthPage";
 import DashboardPage from "./pages/DashboardPage";
 import HomePage from "./pages/Home";
+import TurfListingPage from "./pages/turfs/Turf";
 import TurfDetailsPage from "./pages/turfs/TurfDetails";
-import TurfListingPage from "./pages/turfs/TurfListing";
 
 function App() {
 	return (
