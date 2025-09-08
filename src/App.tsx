@@ -4,6 +4,8 @@ import ProtectedRoute from "./components/layout/ProtectedRoute";
 import AuthPage from "./pages/AuthPage";
 import DashboardPage from "./pages/DashboardPage";
 import HomePage from "./pages/Home";
+import TurfDetailsPage from "./pages/turfs/TurfDetails";
+import TurfListingPage from "./pages/turfs/TurfListing";
 
 function App() {
 	return (
@@ -12,6 +14,8 @@ function App() {
 				{/* Public Routes */}
 				<Route index element={<HomePage />} />
 				<Route path="auth" element={<AuthPage />} />
+				<Route path="turfs" element={<TurfListingPage />} />
+				<Route path="turfs/:slug" element={<TurfDetailsPage />} />
 				<Route
 					path="unauthorized"
 					element={<div>You do not have access to this page</div>}
