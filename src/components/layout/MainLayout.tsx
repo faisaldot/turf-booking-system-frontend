@@ -4,7 +4,7 @@ import Header from "./Header";
 
 export default function MainLayout() {
 	return (
-		<>
+		<div className="flex min-h-screen flex-col">
 			<Header />
 
 			<main className="flex-grow container mx-auto p-4">
@@ -12,6 +12,6 @@ export default function MainLayout() {
 			</main>
 
 			<Footer />
-		</>
+		</div>
 	);
 }

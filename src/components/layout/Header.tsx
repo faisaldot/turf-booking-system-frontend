@@ -3,21 +3,38 @@ import { buttonVariants } from "@/components/ui/button";
 
 export default function Header() {
 	return (
-		<header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-			<div className="container flex h-14 items-center">
-				<Link to="/" className="mr-6 flex items-center space-x-2">
-					<span className="font-bold">Khelbi Naki BD</span>
+		<header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60 shadow-sm">
+			<div className="container mx-auto flex h-16 items-center px-4">
+				<Link to="/" className="mr-8 flex items-center space-x-2">
+					<span className="text-lg font-bold tracking-wide hover:text-primary transition-colors">
+						Khelbi Naki BD
+					</span>
 				</Link>
+
 				<nav className="flex items-center space-x-6 text-sm font-medium">
 					<Link
 						to="/turfs"
-						className="transition-colors hover:text-foreground/80 text-foreground/60"
+						className="text-foreground/70 hover:text-foreground transition-colors"
 					>
 						Turfs
 					</Link>
+					<Link
+						to="/about"
+						className="text-foreground/70 hover:text-foreground transition-colors"
+					>
+						About
+					</Link>
+					<Link
+						to="/contact"
+						className="text-foreground/70 hover:text-foreground transition-colors"
+					>
+						Contact
+					</Link>
 				</nav>
+
 				<div className="flex-1" />
-				<div className="flex items-center space-x-4">
+
+				<div className="flex items-center space-x-3">
 					<Link to="/auth" className={buttonVariants({ variant: "default" })}>
 						Sign In
 					</Link>
