@@ -1,3 +1,4 @@
+import { useState } from "react";
 import LoginForm from "@/components/features/auth/LoginForm";
 import { RegisterForm } from "@/components/features/auth/RegisterForm";
 import { Button } from "@/components/ui/button";
@@ -9,7 +10,6 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
-import { useState } from "react";
 
 export default function AuthPage() {
 	const [isLogin, setIsLogin] = useState(true);

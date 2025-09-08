@@ -10,6 +10,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
+import { PageLoader } from "@/components/ui/loading";
 import api from "@/lib/api";
 import type { ApiResponse, Turf } from "@/types/api.types";
 
@@ -26,7 +27,7 @@ export default function TurfDetailsPage() {
 	});
 
 	if (isLoading) {
-		return <h1>Loading...</h1>;
+		return <PageLoader />;
 	}
 
 	if (error) {
@@ -92,13 +93,13 @@ export default function TurfDetailsPage() {
 										Default Price: ৳{turf?.defaultPricePerSlot}
 									</p>
 									{turf?.pricingRules.map((rule, index) => (
-										// biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
+										// biome-ignore lint/suspicious/noArrayIndexKey: <explanation
 										<div key={index} className="pl-4 border-l-2 border-primary">
 											<p className="font-semibold">
 												{rule.dayType.toUpperCase()}
 											</p>
 											{rule.timeSlots.map((slot, i) => (
-												// biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
+												// biome-ignore lint/suspicious/noArrayIndexKey: <explanation
 												<p key={i} className="text-sm text-muted-foreground">
 													{slot.startTime} - {slot.endTime}: ৳
 													{slot.pricePerSlot}
