@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { TurfCardSkeleton } from "@/components/ui/loading";
 import api from "@/lib/api";
 import type { ApiResponse, Turf } from "@/types/api.types";
+import TurfSearch from "./TurfSearch";
 
 export default function TurfList() {
 	const [searchQuery, setSearchQuery] = useState("");
@@ -50,15 +51,12 @@ export default function TurfList() {
 	}
 
 	return (
-		<div className="container mx-auto space-y-6  py-8">
-			{/* Search */}
+		<div className="container mx-auto space-y-6  py-4">
+			{/* Search and Filters*/}
 			<div className="flex gap-4">
-				<Input
-					placeholder="Search turfs by name or location..."
-					value={searchQuery}
-					onChange={(e) => setSearchQuery(e.target.value)}
-					className="max-w-md"
-				/>
+				<TurfSearch onSearch={setSearchQuery}>
+					{/* placeholder for future filtering UI */}
+				</TurfSearch>
 			</div>
 
 			{/* Turfs Grid */}
