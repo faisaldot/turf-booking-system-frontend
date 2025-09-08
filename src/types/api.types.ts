@@ -108,7 +108,7 @@ export interface TurfAvailability {
 }
 
 // Validation Schema Types
-export type LoginDate = z.infer<typeof loginSchema>;
+export type LoginData = z.infer<typeof loginSchema>;
 export type RegisterData = z.infer<typeof registerSchema>;
 export type VerifyOtpData = z.infer<typeof verifyOtpSchema>;
 export type ForgotPasswordData = z.infer<typeof forgotPasswordSchema>;
