@@ -1,3 +1,5 @@
+// useAuth.ts
+
 import { useMutation } from "@tanstack/react-query";
 import type { AxiosError } from "axios";
 import { useNavigate } from "react-router";
@@ -20,17 +22,19 @@ export function useAuth() {
 	// Login mutation
 	const loginMutation = useMutation({
 		mutationFn: async (credentials: LoginData) => {
+			console.log("Attemting login with:", credentials);
 			const response = await api.post<
 				ApiResponse<{
 					user: User;
 					accessToken: string;
 					refreshToken: string;
 				}>
-			>("/auth/login", credentials);
+			>("/api/v1/auth/login", credentials);
 
 			return response.data;
 		},
 		onSuccess: ({ message, data }) => {
+			console.log("Login successfull:", data?.refreshToken);
 			if (data) {
 				login(data.user, data.accessToken, data.refreshToken);
 				toast.success(message);
@@ -38,6 +42,7 @@ export function useAuth() {
 			}
 		},
 		onError: (error: AxiosError<ApiError>) => {
+			console.error("Login error:", error);
 			toast.error(error.response?.data?.message || "Login failed");
 		},
 	});
@@ -45,14 +50,20 @@ export function useAuth() {
 	// Registration mutation
 	const registerMutation = useMutation({
 		mutationFn: async (data: RegisterData) => {
-			const response = await api.post<ApiResponse>("/auth/register", data);
+			console.log("Attempting registration with: ", data);
+			const response = await api.post<ApiResponse>(
+				"/api/v1/auth/register",
+				data,
+			);
 			return response.data;
 		},
 		onSuccess: ({ message }) => {
+			console.log("Registration successful");
 			toast.success(message);
 			navigate("/auth/verify-otp");
 		},
 		onError: (error: AxiosError<ApiError>) => {
+			console.log("Registration error:", error);
 			toast.error(error.response?.data?.message || "Registration failed");
 		},
 	});
@@ -60,16 +71,18 @@ export function useAuth() {
 	// Verify OTP mutation
 	const verifyOtpMutation = useMutation({
 		mutationFn: async (data: VerifyOtpData) => {
+			console.log("Attempting OTP verification with: ", data);
 			const response = await api.post<
 				ApiResponse<{
 					user: User;
 					accessToken: string;
 					refreshToken: string;
 				}>
-			>("/api/verify-auth", data);
+			>("/auth/verify-otp", data);
 			return response.data;
 		},
 		onSuccess: ({ data, message }) => {
+			console.log("OTP verification successful: ", data);
 			if (data) {
 				login(data.user, data.accessToken, data.refreshToken);
 				toast.success(message);
@@ -77,6 +90,7 @@ export function useAuth() {
 			}
 		},
 		onError: (error: AxiosError<ApiError>) => {
+			console.log("OTP verification error: ", error);
 			toast.error(error.response?.data?.message || "OTP verification failed");
 		},
 	});
