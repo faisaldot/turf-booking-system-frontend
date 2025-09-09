@@ -31,6 +31,7 @@ export function RegisterForm() {
 	});
 
 	const onSubmit = (data: RegisterData) => {
+		console.log("Form data being submitted:", data);
 		register(data);
 	};
 
@@ -73,6 +74,18 @@ export function RegisterForm() {
 								<Input type="password" placeholder="password" {...field} />
 							</FormControl>
 							<FormMessage />
+						</FormItem>
+					)}
+				/>
+				<FormField
+					control={form.control}
+					name="phone"
+					render={({ field }) => (
+						<FormItem>
+							<FormLabel>Phone</FormLabel>
+							<FormControl>
+								<Input placeholder="phone" {...field} type="number" />
+							</FormControl>
 						</FormItem>
 					)}
 				/>
