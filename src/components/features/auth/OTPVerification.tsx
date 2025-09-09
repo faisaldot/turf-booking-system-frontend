@@ -1,5 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import { Link } from "react-router";
 import { Button } from "@/components/ui/button";
 import {
 	Form,
@@ -10,10 +11,13 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { LoadingSpinner } from "@/components/ui/loading";
+import { useAuth } from "@/hooks/auth/useAuth";
 import { verifyOtpSchema } from "@/lib/validation";
 import type { VerifyOtpData } from "@/types/api.types";
 
 export function OTPVerification() {
+	const { verifyOtp } = useAuth();
 	const form = useForm<VerifyOtpData>({
 		resolver: zodResolver(verifyOtpSchema),
 		defaultValues: {
@@ -23,7 +27,8 @@ export function OTPVerification() {
 	});
 
 	const onSubmit = (data: VerifyOtpData) => {
-		console.log(data);
+		console.log("Verifying OTP with", data);
+		verifyOtp.mutate(data);
 	};
 
 	return (
@@ -49,14 +54,19 @@ export function OTPVerification() {
 						<FormItem>
 							<FormLabel>OTP Code</FormLabel>
 							<FormControl>
-								<Input placeholder="XXXXXX" {...field} />
+								<Input placeholder="XXXXXX" maxLength={6} {...field} />
 							</FormControl>
 							<FormMessage />
 						</FormItem>
 					)}
 				/>
-				<Button type="submit" className="w-full">
-					Verify
+
+				<Button
+					type="submit"
+					className="w-full cursor-pointer"
+					disabled={verifyOtp.isPending}
+				>
+					{verifyOtp.isPending ? <LoadingSpinner size="sm" /> : "Verify"}
 				</Button>
 			</form>
 		</Form>

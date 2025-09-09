@@ -5,6 +5,7 @@ import ProtectedRoute from "./components/layout/ProtectedRoute";
 import AuthPage from "./pages/AuthPage";
 import DashboardPage from "./pages/DashboardPage";
 import HomePage from "./pages/Home";
+import OTPVerificationPage from "./pages/OTPVerificationPage";
 import TurfListingPage from "./pages/turfs/Turf";
 import TurfDetailsPage from "./pages/turfs/TurfDetails";
 
@@ -16,7 +17,10 @@ function App() {
 				<Route path="/" element={<MainLayout />}>
 					{/* Public Routes */}
 					<Route index element={<HomePage />} />
+
 					<Route path="auth" element={<AuthPage />} />
+					<Route path="auth/verify-otp" element={<OTPVerificationPage />} />
+
 					<Route path="turfs" element={<TurfListingPage />} />
 					<Route path="turfs/:slug" element={<TurfDetailsPage />} />
 					<Route
