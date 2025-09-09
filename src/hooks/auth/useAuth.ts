@@ -29,7 +29,7 @@ export function useAuth() {
 					accessToken: string;
 					refreshToken: string;
 				}>
-			>("/api/v1/auth/login", credentials);
+			>("/auth/login", credentials);
 
 			return response.data;
 		},
@@ -51,10 +51,7 @@ export function useAuth() {
 	const registerMutation = useMutation({
 		mutationFn: async (data: RegisterData) => {
 			console.log("Attempting registration with: ", data);
-			const response = await api.post<ApiResponse>(
-				"/api/v1/auth/register",
-				data,
-			);
+			const response = await api.post<ApiResponse>("/auth/register", data);
 			return response.data;
 		},
 		onSuccess: ({ message }) => {

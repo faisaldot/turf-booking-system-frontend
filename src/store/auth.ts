@@ -33,7 +33,7 @@ export const authStore = create<AuthState & AuthAction>()(
 				set({ accessToken, refreshToken }),
 
 			login: (user, accessToken, refreshToken) =>
-				set({ user, accessToken, refreshToken, isAuthenticated: false }),
+				set({ user, accessToken, refreshToken, isAuthenticated: true }),
 
 			logout: () =>
 				set({
