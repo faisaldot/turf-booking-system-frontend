@@ -1,32 +1,49 @@
-import { email, z } from "zod";
+import { z } from "zod";
+
+// Strong password regex to match backend
+const strongPasswordRegex =
+	/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
 
 // Auth Schemas
 export const loginSchema = z.object({
-	email: z.email("Please enter a valid email address"),
-	password: z.string().min(6, "Password must be at least 6 characters"),
+	email: z.email("Please enter a valid email address").toLowerCase(),
+	password: z.string().min(1, "Password is required"),
 });
 
 export const registerSchema = z.object({
-	name: z.string().min(2, "Name must be at least 2 characters"),
-	email: z.email("Please enter a valid email address"),
-	password: z.string().min(6, "Password must be at least 6 characters"),
+	name: z.string().min(2, "Name must be at least 2 characters").trim(),
+	email: z.email("Please enter a valid email address").toLowerCase(),
+	password: z
+		.string()
+		.min(8, "Password must be at least 8 characters long")
+		.regex(
+			strongPasswordRegex,
+			"Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character",
+		),
 	phone: z
 		.string()
 		.min(11, "Phone number must be at least 11 digits")
-		.max(14, "Phone number must not exceed 14 digits"),
+		.max(14, "Phone number must not exceed 14 digits")
+		.trim(),
 });
 
 export const verifyOtpSchema = z.object({
-	email: z.email(),
+	email: z.email().toLowerCase(),
 	otp: z.string().length(6, "OTP must be exactly 6 digits"),
 });
 
 export const forgotPasswordSchema = z.object({
-	email: z.email("Please enter a valid email address"),
+	email: z.email("Please enter a valid email address").toLowerCase(),
 });
 
 export const resetPasswordSchema = z.object({
-	password: z.string().min(6, "Password must be at least 6 characters"),
+	password: z
+		.string()
+		.min(8, "Password must be at least 8 characters long")
+		.regex(
+			strongPasswordRegex,
+			"Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character",
+		),
 });
 
 // Booking Schema
@@ -35,12 +52,7 @@ export const createBookingSchema = z
 		turf: z.string(),
 		date: z
 			.date({
-				error: (issue) =>
-					issue.input === undefined
-						? "Please select a date"
-						: issue.code === "invalid_type"
-							? "Invalid date format"
-							: undefined,
+				error: "Please select a date",
 			})
 			.refine(
 				(date) => date >= new Date(new Date().setHours(0, 0, 0, 0)),
@@ -111,8 +123,8 @@ export const updateTurfSchema = createTurfSchema.partial();
 
 // User Schema
 export const updateProfileSchema = z.object({
-	name: z.string().min(2).optional(),
-	email: z.email().optional(),
-	phone: z.string().min(11).max(14).optional(),
-	profilePictures: z.url().optional(),
+	name: z.string().min(2).trim().optional(),
+	email: z.email().toLowerCase().optional(),
+	phone: z.string().min(11).max(14).trim().optional(),
+	profilePicture: z.url().optional(),
 });

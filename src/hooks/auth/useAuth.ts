@@ -9,6 +9,7 @@ import { authStore } from "@/store/auth";
 import type {
 	ApiError,
 	ApiResponse,
+	ForgotPasswordData,
 	LoginData,
 	RegisterData,
 	User,
@@ -17,7 +18,7 @@ import type {
 
 export function useAuth() {
 	const navigate = useNavigate();
-	const { login, logout, user, isAuthenticated } = authStore();
+	const { login, logout, user, isAuthenticated, setLoading } = authStore();
 
 	// Login mutation
 	const loginMutation = useMutation({
@@ -27,23 +28,24 @@ export function useAuth() {
 				ApiResponse<{
 					user: User;
 					accessToken: string;
-					refreshToken: string;
 				}>
 			>("/auth/login", credentials);
 
 			return response.data;
 		},
 		onSuccess: ({ message, data }) => {
-			console.log("Login successfull:", data?.refreshToken);
+			console.log("Login successfull:", data?.user.email);
 			if (data) {
-				login(data.user, data.accessToken, data.refreshToken);
+				login(data.user, data.accessToken);
 				toast.success(message);
+
 				navigate("/dashboard");
 			}
 		},
 		onError: (error: AxiosError<ApiError>) => {
 			console.error("Login error:", error);
-			toast.error(error.response?.data?.message || "Login failed");
+			const errorMessage = error.response?.data?.message || "Login failed";
+			toast.error(errorMessage);
 		},
 	});
 
@@ -51,44 +53,108 @@ export function useAuth() {
 	const registerMutation = useMutation({
 		mutationFn: async (data: RegisterData) => {
 			console.log("Attempting registration with: ", data);
-			const response = await api.post<ApiResponse>("/auth/register", data);
+			const response = await api.post<ApiResponse<{ email: string }>>(
+				"/auth/register",
+				data,
+			);
 			return response.data;
 		},
-		onSuccess: ({ message }) => {
-			console.log("Registration successful");
+		onSuccess: ({ message, data }) => {
+			console.log("Registration successful", data?.email);
 			toast.success(message);
+			sessionStorage.setItem("otp-email", data?.email || "");
 			navigate("/auth/verify-otp");
 		},
 		onError: (error: AxiosError<ApiError>) => {
 			console.log("Registration error:", error);
-			toast.error(error.response?.data?.message || "Registration failed");
+			const errorMessage =
+				error.response?.data?.message || "Registration failed";
+			toast.error(errorMessage);
 		},
 	});
 
 	// Verify OTP mutation
 	const verifyOtpMutation = useMutation({
 		mutationFn: async (data: VerifyOtpData) => {
-			console.log("Attempting OTP verification with: ", data);
+			console.log("Attempting OTP verification with: ", data.email);
 			const response = await api.post<
 				ApiResponse<{
 					user: User;
 					accessToken: string;
-					refreshToken: string;
 				}>
 			>("/auth/verify-otp", data);
 			return response.data;
 		},
 		onSuccess: ({ data, message }) => {
-			console.log("OTP verification successful: ", data);
+			console.log("OTP verification successful for: ", data?.user.email);
 			if (data) {
-				login(data.user, data.accessToken, data.refreshToken);
+				login(data.user, data.accessToken);
+				toast.success(message);
+				sessionStorage.removeItem("otp-email");
+				navigate("/dashboard");
+			}
+		},
+		onError: (error: AxiosError<ApiError>) => {
+			console.log("OTP verification error: ", error.response?.data);
+			const errorMessage =
+				error.response?.data?.message || "OTP verification failed";
+			toast.error(errorMessage);
+		},
+	});
+
+	// Forgot Password mutation
+	const forgotPasswordMutation = useMutation({
+		mutationFn: async (data: ForgotPasswordData) => {
+			console.log("Requesting password reset for: ", data.email);
+			const response = await api.post<ApiResponse>(
+				"/auth/forgot-password",
+				data,
+			);
+			return response.data;
+		},
+		onSuccess: ({ message }) => {
+			toast.success(message);
+			navigate("/auth/login");
+		},
+		onError: (error: AxiosError<ApiError>) => {
+			console.error("Forgot password error:", error.response?.data);
+			const errorMessage =
+				error.response?.data?.message || "Failed to send reset email";
+			toast.error(errorMessage);
+		},
+	});
+
+	// Reset Password mutation
+	const resetPasswordMutation = useMutation({
+		mutationFn: async ({
+			token,
+			password,
+		}: {
+			token: string;
+			password: string;
+		}) => {
+			console.log("Attempting password reset");
+			const response = await api.patch<
+				ApiResponse<{
+					user: User;
+					accessToken: string;
+				}>
+			>(`/auth/reset-password/${token}`, { password });
+			return response.data;
+		},
+		onSuccess: ({ data, message }) => {
+			console.log("Password reset successful");
+			if (data) {
+				login(data.user, data.accessToken);
 				toast.success(message);
 				navigate("/dashboard");
 			}
 		},
 		onError: (error: AxiosError<ApiError>) => {
-			console.log("OTP verification error: ", error);
-			toast.error(error.response?.data?.message || "OTP verification failed");
+			console.error("Password reset error:", error.response?.data);
+			const errorMessage =
+				error.response?.data?.message || "Password reset failed";
+			toast.error(errorMessage);
 		},
 	});
 
@@ -96,16 +162,32 @@ export function useAuth() {
 	const handleLogout = () => {
 		logout();
 		navigate("/auth/login");
-		toast.success("Logged out successfully");
+		toast.success("Logged out successfully", { richColors: true });
 	};
 
 	return {
+		// State
 		user,
 		isAuthenticated,
-		isLoading: loginMutation.isPending || registerMutation.isPending,
+		isLoading:
+			loginMutation.isPending ||
+			registerMutation.isPending ||
+			verifyOtpMutation.isPending ||
+			forgotPasswordMutation.isPending ||
+			resetPasswordMutation.isPending,
+
+		// Actions
 		login: loginMutation.mutate,
 		register: registerMutation.mutate,
-		verifyOtp: verifyOtpMutation,
+		verifyOtp: verifyOtpMutation.mutate,
+		forgotPassword: forgotPasswordMutation.mutate,
+		resetPassword: (token: string, password: string) =>
+			resetPasswordMutation.mutate({ token, password }),
 		logout: handleLogout,
+
+		// Status flags
+		loginError: loginMutation.error,
+		registerError: registerMutation.error,
+		verifyOtpError: verifyOtpMutation.error,
 	};
 }

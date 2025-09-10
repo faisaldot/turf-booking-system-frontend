@@ -11,7 +11,7 @@ interface CustomAxiosRequestConfig extends AxiosRequestConfig {
 	_retry?: boolean;
 }
 
-const API_URL = import.meta.env.VITE_API_URL;
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:9000/api/v1";
 
 export const api = axios.create({
 	baseURL: API_URL,
@@ -19,14 +19,20 @@ export const api = axios.create({
 	headers: {
 		"Content-Type": "application/json",
 	},
+	withCredentials: true,
 });
 
-async function refreshAccessToken(refreshToken: string) {
-	const response = await api.post<ApiResponse<{ accessToken: string }>>(
-		"/auth/refresh-token",
-		{ refreshToken },
-	);
-	return response.data.data?.accessToken;
+async function refreshAccessToken() {
+	try {
+		const response = await api.post<ApiResponse<{ accessToken: string }>>(
+			"/auth/refresh-token",
+			{},
+		);
+		return response.data.data?.accessToken;
+	} catch (error) {
+		console.error("Token refresh failed: ", error);
+		throw error;
+	}
 }
 
 // Request interceptors for auth token
@@ -52,15 +58,20 @@ api.interceptors.response.use(
 			originalRequest._retry = true;
 
 			try {
-				const refreshToken = authStore.getState().refreshToken;
-				if (!refreshToken) throw new Error("No refresh token");
+				const newAccessToken = await refreshAccessToken();
 
-				const newAccessToken = await refreshAccessToken(refreshToken);
+				if (newAccessToken) {
+					authStore
+						.getState()
+						.setTokens(newAccessToken, authStore.getState().refreshToken || "");
 
-				authStore.getState().setTokens(newAccessToken!, refreshToken);
-
-				return api(originalRequest);
+					if (originalRequest.headers) {
+						originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+					}
+					return api(originalRequest);
+				}
 			} catch (refreshError) {
+				console.error("Token refresh failed: ", refreshError);
 				authStore.getState().logout();
 				window.location.href = "/auth/login";
 				return Promise.reject(refreshError);

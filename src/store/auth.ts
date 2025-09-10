@@ -12,16 +12,17 @@ interface AuthState {
 
 interface AuthAction {
 	setUser: (user: User) => void;
-	setTokens: (accessToken: string, refreshToken: string) => void;
-	login: (user: User, accessToken: string, refreshToken: string) => void;
+	setTokens: (accessToken: string, refreshToken?: string) => void;
+	login: (user: User, accessToken: string, refreshToken?: string) => void;
 	logout: () => void;
 	updateUser: (updates: Partial<User>) => void;
 	setLoading: (loading: boolean) => void;
+	clearAuth: () => void;
 }
 
 export const authStore = create<AuthState & AuthAction>()(
 	persist(
-		(set, _get) => ({
+		(set, get) => ({
 			user: null,
 			accessToken: null,
 			refreshToken: null,
@@ -29,19 +30,34 @@ export const authStore = create<AuthState & AuthAction>()(
 			isLoading: false,
 
 			setUser: (user) => set({ user, isAuthenticated: true }),
+
 			setTokens: (accessToken, refreshToken) =>
-				set({ accessToken, refreshToken }),
+				set({
+					accessToken,
+					refreshToken: refreshToken || get().refreshToken,
+					isAuthenticated: true,
+				}),
 
 			login: (user, accessToken, refreshToken) =>
-				set({ user, accessToken, refreshToken, isAuthenticated: true }),
+				set({
+					user,
+					accessToken,
+					refreshToken: refreshToken || "cookie-stored", // Placeholder since it's in httpOnly cookie
+					isAuthenticated: true,
+					isLoading: false,
+				}),
 
-			logout: () =>
+			logout: () => {
 				set({
 					user: null,
 					accessToken: null,
 					refreshToken: null,
 					isAuthenticated: false,
-				}),
+					isLoading: false,
+				});
+			},
+
+			clearAuth: () => get().logout(),
 
 			updateUser: (updates) =>
 				set((state) => ({
@@ -55,9 +71,9 @@ export const authStore = create<AuthState & AuthAction>()(
 			partialize: (state) => ({
 				user: state.user,
 				accessToken: state.accessToken,
-				refreshToken: state.refreshToken,
 				isAuthenticated: state.isAuthenticated,
 			}),
+			version: 1,
 		},
 	),
 );
