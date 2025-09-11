@@ -1,6 +1,7 @@
 import { Link } from "react-router";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { useAuth } from "@/hooks/auth/useAuth";
+import { ModeToggle } from "../mode-toggle";
 
 export default function Header() {
 	const { isAuthenticated, logout } = useAuth();
@@ -44,7 +45,7 @@ export default function Header() {
 
 				<div className="flex-1" />
 
-				<div className="flex items-center space-x-3">
+				<div className="flex items-center space-x-3 ">
 					{isAuthenticated ? (
 						<Button
 							type="button"
@@ -59,6 +60,7 @@ export default function Header() {
 							Sign In
 						</Link>
 					)}
+					<ModeToggle />
 				</div>
 			</div>
 		</header>

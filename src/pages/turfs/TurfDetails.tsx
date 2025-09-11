@@ -30,7 +30,7 @@ export default function TurfDetailsPage() {
 		return <PageLoader />;
 	}
 
-	if (error) {
+	if (error || !data?.data) {
 		return (
 			<div className="container py-8 text-center">
 				<h1 className="text-3xl font-bold">Turf not found</h1>
@@ -41,7 +41,7 @@ export default function TurfDetailsPage() {
 		);
 	}
 
-	const { data: turf } = data!;
+	const { data: turf } = data;
 
 	return (
 		<div className="container py-8">

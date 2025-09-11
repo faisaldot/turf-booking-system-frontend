@@ -10,7 +10,6 @@ import {
 	CardFooter,
 	CardHeader,
 } from "@/components/ui/card";
-
 import { TurfCardSkeleton } from "@/components/ui/loading";
 import api from "@/lib/api";
 import type { ApiResponse, Turf } from "@/types/api.types";
@@ -34,7 +33,7 @@ export default function TurfList() {
 		return (
 			<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 p-8">
 				{Array.from({ length: 6 }).map((_, i) => (
-					// biome-ignore lint/suspicious/noArrayIndexKey: <explanation
+					// biome-ignore lint/suspicious/noArrayIndexKey: This is acceptable for skeleton loaders
 					<TurfCardSkeleton key={i} />
 				))}
 			</div>
@@ -51,12 +50,11 @@ export default function TurfList() {
 	}
 
 	return (
-		<div className="container mx-auto space-y-6  py-4">
-			{/* Search and Filters*/}
+		<div className="container mx-auto space-y-6 py-4">
+			{/* Search and Filters */}
 			<div className="flex gap-4">
-				<TurfSearch onSearch={setSearchQuery}>
-					{/* placeholder for future filtering UI */}
-				</TurfSearch>
+				<TurfSearch onSearch={setSearchQuery} />
+				{/* placeholder for future filtering UI */}
 			</div>
 
 			{/* Turfs Grid */}
@@ -65,15 +63,42 @@ export default function TurfList() {
 					<TurfCard key={turf._id} turf={turf} />
 				))}
 			</div>
-
 			{/* Pagination */}
-			{data?.meta && data.meta.totalPages > 1 && <Pagination />}
+			{data?.meta && data.meta.totalPages > 1 && (
+				<div className="mt-8 flex justify-center items-center space-x-4">
+					{/* Previous Button */}
+					<Button
+						onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
+						disabled={page <= 1}
+						variant="outline"
+					>
+						Previous
+					</Button>
+
+					{/* Page Info */}
+					<div className="flex items-center space-x-2 text-sm text-muted-foreground">
+						<span>
+							Page {data.meta.currentPage} of {data.meta.totalPages}
+						</span>
+						{data.meta.totalPages && (
+							<span className="text-xs">
+								({data.meta.totalPages} total items)
+							</span>
+						)}
+					</div>
+
+					{/* Next Button */}
+					<Button
+						onClick={() => setPage((prev) => prev + 1)}
+						disabled={page >= data.meta.totalPages}
+						variant="outline"
+					>
+						Next
+					</Button>
+				</div>
+			)}
 		</div>
 	);
-}
-
-function Pagination() {
-	return null;
 }
 
 function TurfCard({ turf }: { turf: Turf }) {
@@ -84,7 +109,7 @@ function TurfCard({ turf }: { turf: Turf }) {
 				<img
 					src={turf.images[0] || "https://picsum.photos/400/200?random=1"}
 					alt={turf.name}
-					className="w-full h-48 md:h-56 object-cover  -mt-7 rounded-t-xl"
+					className="w-full h-48 md:h-56 object-cover -mt-7 rounded-t-xl"
 				/>
 			</CardHeader>
 
