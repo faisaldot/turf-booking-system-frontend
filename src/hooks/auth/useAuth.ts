@@ -1,5 +1,3 @@
-// useAuth.ts
-
 import { useMutation } from "@tanstack/react-query";
 import type { AxiosError } from "axios";
 import { useNavigate } from "react-router";
@@ -18,7 +16,7 @@ import type {
 
 export function useAuth() {
 	const navigate = useNavigate();
-	const { login, logout, user, isAuthenticated, setLoading } = authStore();
+	const { login, logout, user, isAuthenticated } = authStore();
 
 	// Login mutation
 	const loginMutation = useMutation({
@@ -31,14 +29,21 @@ export function useAuth() {
 				}>
 			>("/auth/login", credentials);
 
-			return response.data;
+			const loginData = response.data as any;
+			return {
+				message: loginData.message,
+				data: {
+					user: loginData.data?.user,
+					accessToken: loginData.data?.accessToken,
+				},
+			};
 		},
 		onSuccess: ({ message, data }) => {
-			console.log("Login successfull:", data?.user.email);
-			if (data) {
-				login(data.user, data.accessToken);
-				toast.success(message);
+			console.log("Login successfull:", data?.user?.email);
 
+			if (data) {
+				login(data.user, data.accessToken, "cookie-stored");
+				toast.success(message);
 				navigate("/dashboard");
 			}
 		},
@@ -57,13 +62,19 @@ export function useAuth() {
 				"/auth/register",
 				data,
 			);
-			return response.data;
+			const registerData = response.data as any;
+			return {
+				message: registerData.message,
+				data: { email: registerData.data?.email },
+			};
 		},
 		onSuccess: ({ message, data }) => {
 			console.log("Registration successful", data?.email);
 			toast.success(message);
-			sessionStorage.setItem("otp-email", data?.email || "");
-			navigate("/auth/verify-otp");
+			if (data) {
+				sessionStorage.setItem("otp-email", data.email);
+				navigate("/auth/verify-otp");
+			}
 		},
 		onError: (error: AxiosError<ApiError>) => {
 			console.log("Registration error:", error);
@@ -83,12 +94,19 @@ export function useAuth() {
 					accessToken: string;
 				}>
 			>("/auth/verify-otp", data);
-			return response.data;
+			const verificationData = response.data as any;
+			return {
+				message: verificationData.message,
+				data: {
+					user: verificationData.data?.user,
+					accessToken: verificationData.data?.accessToken,
+				},
+			};
 		},
 		onSuccess: ({ data, message }) => {
-			console.log("OTP verification successful for: ", data?.user.email);
+			console.log("OTP verification successful for: ", data?.user?.email);
 			if (data) {
-				login(data.user, data.accessToken);
+				login(data.user, data.accessToken, "cookie-stored");
 				toast.success(message);
 				sessionStorage.removeItem("otp-email");
 				navigate("/dashboard");
@@ -114,7 +132,7 @@ export function useAuth() {
 		},
 		onSuccess: ({ message }) => {
 			toast.success(message);
-			navigate("/auth/login");
+			navigate("/auth");
 		},
 		onError: (error: AxiosError<ApiError>) => {
 			console.error("Forgot password error:", error.response?.data);
@@ -140,12 +158,21 @@ export function useAuth() {
 					accessToken: string;
 				}>
 			>(`/auth/reset-password/${token}`, { password });
-			return response.data;
+
+			const resetData = response.data as any;
+
+			return {
+				message: resetData.message,
+				data: {
+					user: resetData.data?.user,
+					accessToken: resetData.data?.accessToken,
+				},
+			};
 		},
 		onSuccess: ({ data, message }) => {
-			console.log("Password reset successful");
+			console.log("Password reset successful", data.user?.email);
 			if (data) {
-				login(data.user, data.accessToken);
+				login(data.user, data.accessToken, "cookie-stored");
 				toast.success(message);
 				navigate("/dashboard");
 			}
@@ -161,7 +188,7 @@ export function useAuth() {
 	// Logout function
 	const handleLogout = () => {
 		logout();
-		navigate("/auth/login");
+		navigate("/auth");
 		toast.success("Logged out successfully", { richColors: true });
 	};
 
@@ -181,8 +208,7 @@ export function useAuth() {
 		register: registerMutation.mutate,
 		verifyOtp: verifyOtpMutation.mutate,
 		forgotPassword: forgotPasswordMutation.mutate,
-		resetPassword: (token: string, password: string) =>
-			resetPasswordMutation.mutate({ token, password }),
+		resetPassword: resetPasswordMutation.mutate,
 		logout: handleLogout,
 
 		// Status flags

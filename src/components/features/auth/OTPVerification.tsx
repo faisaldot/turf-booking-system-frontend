@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { Link } from "react-router";
+
 import { Button } from "@/components/ui/button";
 import {
 	Form,
@@ -17,7 +17,7 @@ import { verifyOtpSchema } from "@/lib/validation";
 import type { VerifyOtpData } from "@/types/api.types";
 
 export function OTPVerification() {
-	const { verifyOtp } = useAuth();
+	const { verifyOtp, isLoading } = useAuth();
 	const form = useForm<VerifyOtpData>({
 		resolver: zodResolver(verifyOtpSchema),
 		defaultValues: {
@@ -28,7 +28,11 @@ export function OTPVerification() {
 
 	const onSubmit = (data: VerifyOtpData) => {
 		console.log("Verifying OTP with", data);
-		verifyOtp.mutate(data);
+		verifyOtp(data, {
+			onSuccess: () => {
+				form.reset();
+			},
+		});
 	};
 
 	return (
@@ -64,9 +68,9 @@ export function OTPVerification() {
 				<Button
 					type="submit"
 					className="w-full cursor-pointer"
-					disabled={verifyOtp.isPending}
+					disabled={isLoading}
 				>
-					{verifyOtp.isPending ? <LoadingSpinner size="sm" /> : "Verify"}
+					{isLoading ? <LoadingSpinner size="sm" /> : "Verify"}
 				</Button>
 			</form>
 		</Form>

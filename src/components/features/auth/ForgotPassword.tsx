@@ -11,10 +11,13 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { LoadingSpinner } from "@/components/ui/loading";
+import { useAuth } from "@/hooks/auth/useAuth";
 import { forgotPasswordSchema } from "@/lib/validation";
 import type { ForgotPasswordData } from "@/types/api.types";
 
 export function ForgotPassword() {
+	const { forgotPassword, isLoading } = useAuth();
 	const form = useForm<ForgotPasswordData>({
 		resolver: zodResolver(forgotPasswordSchema),
 		defaultValues: {
@@ -23,7 +26,8 @@ export function ForgotPassword() {
 	});
 
 	const onSubmit = (data: ForgotPasswordData) => {
-		console.log(data);
+		console.log("Forgot password data being submitted:", data);
+		forgotPassword(data);
 	};
 
 	return (
@@ -36,14 +40,18 @@ export function ForgotPassword() {
 						<FormItem>
 							<FormLabel>Email</FormLabel>
 							<FormControl>
-								<Input placeholder="zihad@posh.com" {...field} />
+								<Input placeholder="me@example.com" {...field} />
 							</FormControl>
 							<FormMessage />
 						</FormItem>
 					)}
 				/>
-				<Button type="submit" className="w-full">
-					Send Reset Link
+				<Button
+					type="submit"
+					className="w-full cursor-pointer"
+					disabled={isLoading}
+				>
+					{isLoading ? <LoadingSpinner size="sm" /> : "Send Reset Link"}
 				</Button>
 			</form>
 		</Form>

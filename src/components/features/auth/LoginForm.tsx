@@ -27,6 +27,7 @@ export default function LoginForm() {
 	});
 
 	const onSubmit = (data: LoginData) => {
+		console.log("Login data being submitted:", data);
 		login(data);
 	};
 
@@ -59,7 +60,11 @@ export default function LoginForm() {
 						</FormItem>
 					)}
 				/>
-				<Button type="submit" className="w-full cursor-pointer">
+				<Button
+					type="submit"
+					className="w-full cursor-pointer"
+					disabled={isLoading}
+				>
 					{isLoading ? <LoadingSpinner size="sm" /> : "Sign In"}
 				</Button>
 			</form>

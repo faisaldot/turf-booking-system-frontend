@@ -32,7 +32,11 @@ export function RegisterForm() {
 
 	const onSubmit = (data: RegisterData) => {
 		console.log("Form data being submitted:", data);
-		register(data);
+		register(data, {
+			onSuccess: () => {
+				form.reset();
+			},
+		});
 	};
 
 	return (
@@ -89,7 +93,11 @@ export function RegisterForm() {
 						</FormItem>
 					)}
 				/>
-				<Button type="submit" className="w-full cursor-pointer">
+				<Button
+					type="submit"
+					className="w-full cursor-pointer"
+					disabled={isLoading}
+				>
 					{isLoading ? <LoadingSpinner size="sm" /> : "Register"}
 				</Button>
 			</form>
