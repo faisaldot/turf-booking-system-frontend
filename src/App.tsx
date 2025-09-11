@@ -1,18 +1,20 @@
 import { Route, Routes } from "react-router";
 import { Toaster } from "sonner";
 import { ResetPassword } from "./components/features/auth/ResetPassword";
+import { ErrorBoundary } from "./components/layout/ErrorBoundary";
 import MainLayout from "./components/layout/MainLayout";
 import ProtectedRoute from "./components/layout/ProtectedRoute";
 import AuthPage from "./pages/AuthPage";
 import DashboardPage from "./pages/DashboardPage";
 import HomePage from "./pages/Home";
+import NotFoundPage from "./pages/NotFoundPage";
 import OTPVerificationPage from "./pages/OTPVerificationPage";
 import TurfListingPage from "./pages/turfs/Turf";
 import TurfDetailsPage from "./pages/turfs/TurfDetails";
 
 function App() {
 	return (
-		<>
+		<ErrorBoundary>
 			<Toaster richColors position="bottom-right" />
 			<Routes>
 				<Route path="/" element={<MainLayout />}>
@@ -49,8 +51,9 @@ function App() {
 						}
 					/>
 				</Route>
+				<Route path="*" element={<NotFoundPage />} />
 			</Routes>
-		</>
+		</ErrorBoundary>
 	);
 }
 
