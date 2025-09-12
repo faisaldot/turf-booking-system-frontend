@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Clock, MapPin } from "lucide-react";
 import { useParams } from "react-router";
+import BookingForm from "@/components/features/booking/BookingForm";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -111,9 +112,8 @@ export default function TurfDetailsPage() {
 							</div>
 						</CardContent>
 					</Card>
-					<div>
-						{/* Booking form and button here */}
-						<Button>Book Now (IN FUTURE)</Button>
+					<div className="mt-5">
+						<BookingForm turfId={turf._id} />
 					</div>
 				</div>
 			</div>
