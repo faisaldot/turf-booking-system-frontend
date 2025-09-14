@@ -12,7 +12,7 @@ export function usePayment() {
 	const initPaymentMutation = useMutation({
 		mutationFn: async (bookingId: string) => {
 			const response = await api.post<ApiResponse<PaymentInitResponse>>(
-				`/payment/init/${bookingId}`,
+				`/payments/init/${bookingId}`,
 			);
 			return response.data;
 		},
@@ -25,7 +25,7 @@ export function usePayment() {
 		},
 		onError: (error: AxiosError<ApiError>) => {
 			const errorMessage =
-				error.response?.data.message || "Payment initialize failed";
+				error.response?.data.message || "Payment initialization failed";
 			toast.error(errorMessage);
 		},
 	});

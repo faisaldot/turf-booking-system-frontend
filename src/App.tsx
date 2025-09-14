@@ -5,6 +5,7 @@ import { ErrorBoundary } from "./components/layout/ErrorBoundary";
 import MainLayout from "./components/layout/MainLayout";
 import ProtectedRoute from "./components/layout/ProtectedRoute";
 import { ThemeProvider } from "./components/theme-provider";
+import { useAuth } from "./hooks/auth/useAuth";
 import AuthPage from "./pages/AuthPage";
 import DashboardPage from "./pages/DashboardPage";
 import HomePage from "./pages/Home";
@@ -16,6 +17,17 @@ import TurfDetailsPage from "./pages/turfs/TurfDetails";
 import TurfListingPage from "./pages/turfs/TurfPage";
 
 function App() {
+	const { isLoading } = useAuth();
+
+	// Show loading spinner while checking authentication
+	if (isLoading) {
+		return (
+			<div className="flex items-center justify-center min-h-screen">
+				<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+			</div>
+		);
+	}
+
 	return (
 		<ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
 			<ErrorBoundary>

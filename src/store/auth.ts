@@ -4,15 +4,12 @@ import type { User } from "@/types/api.types";
 
 interface AuthState {
 	user: User | null;
-	accessToken: string | null;
-	refreshToken: string | null;
 	isAuthenticated: boolean;
 	isLoading: boolean;
 }
 
 interface AuthAction {
 	setUser: (user: User) => void;
-	setTokens: (accessToken: string, refreshToken?: string) => void;
 	login: (user: User, accessToken: string, refreshToken?: string) => void;
 	logout: () => void;
 	updateUser: (updates: Partial<User>) => void;
@@ -24,25 +21,14 @@ export const authStore = create<AuthState & AuthAction>()(
 	persist(
 		(set, get) => ({
 			user: null,
-			accessToken: null,
-			refreshToken: null,
 			isAuthenticated: false,
 			isLoading: false,
 
 			setUser: (user) => set({ user, isAuthenticated: true }),
 
-			setTokens: (accessToken, refreshToken) =>
-				set({
-					accessToken,
-					refreshToken: refreshToken || get().refreshToken,
-					isAuthenticated: true,
-				}),
-
-			login: (user, accessToken, refreshToken) =>
+			login: (user) =>
 				set({
 					user,
-					accessToken,
-					refreshToken: refreshToken || "cookie-stored", // Placeholder since it's in httpOnly cookie
 					isAuthenticated: true,
 					isLoading: false,
 				}),
@@ -50,8 +36,6 @@ export const authStore = create<AuthState & AuthAction>()(
 			logout: () => {
 				set({
 					user: null,
-					accessToken: null,
-					refreshToken: null,
 					isAuthenticated: false,
 					isLoading: false,
 				});
@@ -70,10 +54,9 @@ export const authStore = create<AuthState & AuthAction>()(
 			name: "auth-storage",
 			partialize: (state) => ({
 				user: state.user,
-				accessToken: state.accessToken,
 				isAuthenticated: state.isAuthenticated,
 			}),
-			version: 1,
+			version: 2, // Increment version to clear old data with tokens
 		},
 	),
 );

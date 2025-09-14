@@ -4,7 +4,6 @@ import axios, {
 	type AxiosResponse,
 } from "axios";
 import { authStore } from "@/store/auth";
-import type { ApiResponse } from "@/types/api.types";
 
 interface CustomAxiosRequestConfig extends AxiosRequestConfig {
 	_retry?: boolean;
@@ -23,28 +22,13 @@ export const api = axios.create({
 
 async function refreshAccessToken() {
 	try {
-		const response = await api.post<ApiResponse<{ accessToken: string }>>(
-			"/auth/refresh-token",
-			{},
-		);
-		return response.data.data?.accessToken;
+		await api.post("/auth/refresh-token", {});
+		return true;
 	} catch (error) {
 		console.error("Token refresh failed: ", error);
 		throw error;
 	}
 }
-
-// Request interceptors for auth token
-api.interceptors.request.use(
-	(config) => {
-		const token = authStore.getState().accessToken;
-		if (token) {
-			config.headers.Authorization = `Bearer ${token}`;
-		}
-		return config;
-	},
-	(error) => Promise.reject(error),
-);
 
 // Response interceptor for error handling and token refresh
 api.interceptors.response.use(
@@ -57,22 +41,13 @@ api.interceptors.response.use(
 			originalRequest._retry = true;
 
 			try {
-				const newAccessToken = await refreshAccessToken();
-
-				if (newAccessToken) {
-					authStore
-						.getState()
-						.setTokens(newAccessToken, authStore.getState().refreshToken || "");
-
-					if (originalRequest.headers) {
-						originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
-					}
-					return api(originalRequest);
-				}
+				await refreshAccessToken();
+				// Token is now refreshed in cookies, retry the original request
+				return api(originalRequest);
 			} catch (refreshError) {
 				console.error("Token refresh failed: ", refreshError);
 				authStore.getState().logout();
-				window.location.href = "/auth/login";
+				window.location.href = "/auth";
 				return Promise.reject(refreshError);
 			}
 		}

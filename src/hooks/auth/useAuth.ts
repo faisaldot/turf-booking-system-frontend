@@ -1,4 +1,4 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import type { AxiosError } from "axios";
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
@@ -16,34 +16,49 @@ import type {
 
 export function useAuth() {
 	const navigate = useNavigate();
-	const { login, logout, user, isAuthenticated } = authStore();
+	const { login, logout, user, isAuthenticated, setUser } = authStore();
+
+	// Check authentication status
+	const { data: authCheckData, isLoading: isCheckingAuth } = useQuery({
+		queryKey: ["authCheck"],
+		queryFn: async () => {
+			try {
+				const response =
+					await api.get<ApiResponse<{ user: User }>>("/protected");
+				return response.data.data;
+			} catch {
+				// if auth check fails, user is not authenticated
+				return null;
+			}
+		},
+		retry: false,
+		refetchOnWindowFocus: false,
+		staleTime: 5 * 60 * 1000, // 5 minutes
+	});
+
+	if (authCheckData?.user && !isAuthenticated) {
+		setUser(authCheckData.user);
+	} else if (!authCheckData && isAuthenticated) {
+		logout();
+	}
 
 	// Login mutation
 	const loginMutation = useMutation({
 		mutationFn: async (credentials: LoginData) => {
 			console.log("Attemting login with:", credentials);
-			const response = await api.post<
-				ApiResponse<{
-					user: User;
-					accessToken: string;
-				}>
-			>("/auth/login", credentials);
+			const response = await api.post<ApiResponse<{ user: User }>>(
+				"/auth/login",
+				credentials,
+			);
 
-			const loginData = response.data as any;
-			return {
-				message: loginData.message,
-				data: {
-					user: loginData.data?.user,
-					accessToken: loginData.data?.accessToken,
-				},
-			};
+			return response.data;
 		},
 		onSuccess: ({ message, data }) => {
-			console.log("Login successfull:", data?.user?.email);
+			console.log("Login successfull:", data?.user.email);
 
-			if (data) {
-				login(data.user, data.accessToken, "cookie-stored");
-				toast.success(message);
+			if (data?.user) {
+				login(data.user);
+				toast.success(message || "Login successfull");
 				navigate("/dashboard");
 			}
 		},
@@ -62,16 +77,13 @@ export function useAuth() {
 				"/auth/register",
 				data,
 			);
-			const registerData = response.data as any;
-			return {
-				message: registerData.message,
-				data: { email: registerData.data?.email },
-			};
+
+			return response.data;
 		},
 		onSuccess: ({ message, data }) => {
 			console.log("Registration successful", data?.email);
-			toast.success(message);
-			if (data) {
+			toast.success(message || "Registration successful");
+			if (data?.email) {
 				sessionStorage.setItem("otp-email", data.email);
 				navigate("/auth/verify-otp");
 			}
@@ -91,23 +103,16 @@ export function useAuth() {
 			const response = await api.post<
 				ApiResponse<{
 					user: User;
-					accessToken: string;
 				}>
 			>("/auth/verify-otp", data);
-			const verificationData = response.data as any;
-			return {
-				message: verificationData.message,
-				data: {
-					user: verificationData.data?.user,
-					accessToken: verificationData.data?.accessToken,
-				},
-			};
+
+			return response.data;
 		},
 		onSuccess: ({ data, message }) => {
 			console.log("OTP verification successful for: ", data?.user?.email);
-			if (data) {
-				login(data.user, data.accessToken, "cookie-stored");
-				toast.success(message);
+			if (data?.user) {
+				login(data.user);
+				toast.success(message || "Email verified successfully");
 				sessionStorage.removeItem("otp-email");
 				navigate("/dashboard");
 			}
@@ -131,7 +136,7 @@ export function useAuth() {
 			return response.data;
 		},
 		onSuccess: ({ message }) => {
-			toast.success(message);
+			toast.success(message || "Password reset email sent");
 			navigate("/auth");
 		},
 		onError: (error: AxiosError<ApiError>) => {
@@ -159,21 +164,13 @@ export function useAuth() {
 				}>
 			>(`/auth/reset-password/${token}`, { password });
 
-			const resetData = response.data as any;
-
-			return {
-				message: resetData.message,
-				data: {
-					user: resetData.data?.user,
-					accessToken: resetData.data?.accessToken,
-				},
-			};
+			return response.data;
 		},
 		onSuccess: ({ data, message }) => {
-			console.log("Password reset successful", data.user?.email);
-			if (data) {
-				login(data.user, data.accessToken, "cookie-stored");
-				toast.success(message);
+			console.log("Password reset successful", data?.user?.email);
+			if (data?.user) {
+				login(data.user);
+				toast.success(message || "Password reset successful");
 				navigate("/dashboard");
 			}
 		},
@@ -186,10 +183,16 @@ export function useAuth() {
 	});
 
 	// Logout function
-	const handleLogout = () => {
-		logout();
-		navigate("/auth");
-		toast.success("Logged out successfully", { richColors: true });
+	const handleLogout = async () => {
+		try {
+			await api.post("/auth/logout");
+		} catch (error) {
+			console.error("Logout API call failed", error);
+		} finally {
+			logout();
+			navigate("/auth");
+			toast.success("Logged out successfully");
+		}
 	};
 
 	return {
@@ -201,7 +204,8 @@ export function useAuth() {
 			registerMutation.isPending ||
 			verifyOtpMutation.isPending ||
 			forgotPasswordMutation.isPending ||
-			resetPasswordMutation.isPending,
+			resetPasswordMutation.isPending ||
+			isCheckingAuth,
 
 		// Actions
 		login: loginMutation.mutate,
