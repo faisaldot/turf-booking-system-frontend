@@ -1,10 +1,14 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { AxiosError } from "axios";
 import { Calendar, Clock, DollarSign } from "lucide-react";
 import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { Link } from "react-router";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
 	Form,
 	FormControl,
@@ -13,6 +17,7 @@ import {
 	FormLabel,
 	FormMessage,
 } from "@/components/ui/form";
+import { LoadingSpinner } from "@/components/ui/loading";
 import {
 	Select,
 	SelectContent,
@@ -20,7 +25,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { usePayment } from "@/hooks/api/usePayment"; // NEW
 import { useAuth } from "@/hooks/auth/useAuth";
 import api from "@/lib/api";
 import { createBookingSchema } from "@/lib/validation";
@@ -31,10 +36,6 @@ import type {
 	CreateBookingData,
 	TurfAvailability,
 } from "@/types/api.types";
-import { LoadingSpinner } from "@/components/ui/loading";
-import { toast } from "sonner";
-import { AxiosError } from "axios";
-import { Link } from "react-router";
 
 const formSchema = createBookingSchema.pick({
 	date: true,
@@ -56,6 +57,7 @@ export default function BookingForm({ turfId }: BookingFormProps) {
 	);
 
 	const { isAuthenticated, user } = useAuth();
+	const { initPayment, isLoading: isPaymentLoading } = usePayment();
 	const queryClient = useQueryClient();
 
 	const form = useForm<BookingFormData>({
@@ -66,12 +68,8 @@ export default function BookingForm({ turfId }: BookingFormProps) {
 		},
 	});
 
-	// Get availability for the selected date
-	const {
-		data: availability,
-		isLoading: isAvailabilityLoading,
-		refetch: refetchAvailability,
-	} = useQuery({
+	// Query to fetch turf availability
+	const { data: availability, isLoading: isAvailabilityLoading } = useQuery({
 		queryKey: ["turf-availability", turfId, selectedDate],
 		queryFn: async () => {
 			if (!selectedDate) return null;
@@ -85,7 +83,7 @@ export default function BookingForm({ turfId }: BookingFormProps) {
 		enabled: !!selectedDate,
 	});
 
-	// Create booking mutation
+	// Mutation to create a new booking
 	const bookingMutation = useMutation({
 		mutationFn: async (data: CreateBookingData) => {
 			const response = await api.post<ApiResponse<Booking>>("/bookings", data);
@@ -93,13 +91,13 @@ export default function BookingForm({ turfId }: BookingFormProps) {
 		},
 		onSuccess: (booking) => {
 			if (booking) {
-				toast.success("Booking created successfully. Redirecting to payment...");
+				toast.success(
+					"Booking created successfully. Redirecting to payment...",
+				);
 				queryClient.invalidateQueries({
 					queryKey: ["turf-availability", turfId, selectedDate],
 				});
-				// Here, we would navigate to a payment page or trigger the payment modal
-				// For now, we'll just show a success message
-				console.log("Booking created:", booking);
+				initPayment(booking._id);
 			}
 		},
 		onError: (error: AxiosError<any>) => {
@@ -110,7 +108,6 @@ export default function BookingForm({ turfId }: BookingFormProps) {
 	});
 
 	const onSubmit = (data: BookingFormData) => {
-		// Calculate endTime as 1 hour after startTime.
 		const startHour = Number(data.startTime.split(":")[0]);
 		const endHour = startHour + 1;
 		const endTime = `${String(endHour).padStart(2, "0")}:${
@@ -127,6 +124,9 @@ export default function BookingForm({ turfId }: BookingFormProps) {
 
 	const availableSlots =
 		availability?.slots?.filter((slot) => slot.isAvailable) || [];
+
+	const isFormLoading =
+		bookingMutation.isPending || isAvailabilityLoading || isPaymentLoading;
 
 	if (!isAuthenticated) {
 		return (
@@ -164,6 +164,8 @@ export default function BookingForm({ turfId }: BookingFormProps) {
 											onSelect={(date) => {
 												field.onChange(date);
 												setSelectedDate(date);
+												// Reset time selection when date changes
+												form.setValue("startTime", "");
 											}}
 											disabled={(date) => date < new Date()}
 											className="rounded-md border"
@@ -197,12 +199,15 @@ export default function BookingForm({ turfId }: BookingFormProps) {
 													</SelectTrigger>
 													<SelectContent>
 														{availableSlots.map((slot) => (
-															<SelectItem key={slot.startTime} value={slot.startTime}>
-																<div className="flex items-center justify-between w-full space-x-4">
+															<SelectItem
+																key={slot.startTime}
+																value={slot.startTime}
+															>
+																<div className="flex items-center justify-between w-full">
 																	<span>
 																		{slot.startTime} - {slot.endTime}
 																	</span>
-																	<span className="font-semibold ">
+																	<span className="font-semibold">
 																		৳{slot.pricePerSlot}
 																	</span>
 																</div>
@@ -234,12 +239,10 @@ export default function BookingForm({ turfId }: BookingFormProps) {
 
 						<Button
 							type="submit"
-							disabled={
-								bookingMutation.isPending || !form.formState.isValid
-							}
+							disabled={isFormLoading || !form.formState.isValid}
 							className="w-full"
 						>
-							{bookingMutation.isPending ? "Creating Booking..." : "Book Now"}
+							{isFormLoading ? <LoadingSpinner size="sm" /> : "Book Now"}
 						</Button>
 					</form>
 				</Form>
@@ -272,7 +275,8 @@ function BookingSummary({
 				<span className="font-medium">Date:</span> {date.toLocaleDateString()}
 			</p>
 			<p className="text-sm">
-				<span className="font-medium">Time:</span> {selectedSlot.startTime} - {endTime}
+				<span className="font-medium">Time:</span> {selectedSlot.startTime} -{" "}
+				{endTime}
 			</p>
 			<div className="flex items-center justify-between font-bold text-lg text-primary">
 				<span>Total Price</span>

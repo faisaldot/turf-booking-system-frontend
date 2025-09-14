@@ -210,10 +210,5 @@ export function useAuth() {
 		forgotPassword: forgotPasswordMutation.mutate,
 		resetPassword: resetPasswordMutation.mutate,
 		logout: handleLogout,
-
-		// Status flags
-		loginError: loginMutation.error,
-		registerError: registerMutation.error,
-		verifyOtpError: verifyOtpMutation.error,
 	};
 }

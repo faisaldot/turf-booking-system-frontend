@@ -10,6 +10,8 @@ import DashboardPage from "./pages/DashboardPage";
 import HomePage from "./pages/Home";
 import NotFoundPage from "./pages/NotFoundPage";
 import OTPVerificationPage from "./pages/OTPVerificationPage";
+import PaymentFailedPage from "./pages/payment/PaymentFailed";
+import PaymentSuccessPage from "./pages/payment/PaymentSuccess";
 import TurfDetailsPage from "./pages/turfs/TurfDetails";
 import TurfListingPage from "./pages/turfs/TurfPage";
 
@@ -32,6 +34,10 @@ function App() {
 							path="unauthorized"
 							element={<div>You do not have access to this page</div>}
 						/>
+
+						{/* Payment Callback Routes */}
+						<Route path="booking-success" element={<PaymentSuccessPage />} />
+						<Route path="booking-failed" element={<PaymentFailedPage />} />
 
 						{/* Protected Routes */}
 						<Route
