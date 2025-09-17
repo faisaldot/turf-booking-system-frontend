@@ -28,47 +28,46 @@ export function useAuth() {
 					await api.get<ApiResponse<{ user: User }>>("/protected");
 				return response.data.data;
 			} catch (error) {
-				// if auth check fails, user is not authenticated
 				console.log("Auth check failed:", error);
 				return null;
 			}
 		},
-		enabled: isAuthenticated, // Only run if we think user is authenticated
+		enabled: isAuthenticated,
 		retry: false,
 		refetchOnWindowFocus: false,
-		staleTime: 5 * 60 * 1000, // 5 minutes
+		staleTime: 5 * 60 * 1000,
 	});
 
+	// Sync user data from auth check
 	if (authCheckData?.user && !user) {
 		setUser(authCheckData.user);
 	} else if (!authCheckData && isAuthenticated && !isCheckingAuth) {
-		// Only logout if we're not currently checking and we get no data
 		logout();
 	}
 
 	// Login mutation
 	const loginMutation = useMutation({
 		mutationFn: async (credentials: LoginData) => {
-			console.log("Attemting login with:", credentials);
+			console.log("Attempting login with:", credentials);
 			const response = await api.post<
 				ApiResponse<{
 					user: User;
 					accessToken: string;
 				}>
 			>("/auth/login", credentials);
-
 			return response.data;
 		},
 		onSuccess: ({ message, data }) => {
-			console.log("Login successfully:", data?.user.email);
+			console.log("Login successful:", data?.user?.email);
 
 			if (data?.user) {
-				login(data.user, "");
+				login(data.user, data.accessToken || "");
 				toast.success(message || "Login successful");
 
-				// Invalidate auth check to refresh
+				// Invalidate and refetch auth check
 				queryClient.invalidateQueries({ queryKey: ["authCheck"] });
 
+				// Navigate after a small delay to ensure state is updated
 				setTimeout(() => {
 					navigate("/dashboard");
 				}, 100);
@@ -84,27 +83,32 @@ export function useAuth() {
 	// Registration mutation
 	const registerMutation = useMutation({
 		mutationFn: async (data: RegisterData) => {
-			console.log("Attempting registration with: ", data);
+			console.log("Attempting registration with:", data);
 			const response = await api.post<ApiResponse<{ email: string }>>(
 				"/auth/register",
 				data,
 			);
-
 			return response.data;
 		},
 		onSuccess: ({ message, data }) => {
-			console.log("Registration successful", data?.email);
-			toast.success(message || "Registration successful");
+			console.log("Registration successful for:", data?.email);
+			toast.success(
+				message || "Registration successful! Please check your email for OTP.",
+			);
 
+			// Store email in sessionStorage BEFORE navigation
 			if (data?.email) {
 				sessionStorage.setItem("otp-email", data.email);
+				console.log("Email stored in session:", data.email);
+
+				// Navigate to OTP page
 				setTimeout(() => {
 					navigate("/auth/verify-otp");
 				}, 100);
 			}
 		},
 		onError: (error: AxiosError<ApiError>) => {
-			console.log("Registration error:", error);
+			console.error("Registration error:", error);
 			const errorMessage =
 				error.response?.data?.message || "Registration failed";
 			toast.error(errorMessage);
@@ -114,35 +118,37 @@ export function useAuth() {
 	// Verify OTP mutation
 	const verifyOtpMutation = useMutation({
 		mutationFn: async (data: VerifyOtpData) => {
-			console.log("Attempting OTP verification with: ", data.email);
+			console.log("Attempting OTP verification for:", data.email);
 			const response = await api.post<
 				ApiResponse<{
 					user: User;
+					accessToken: string;
 				}>
 			>("/auth/verify-otp", data);
-
 			return response.data;
 		},
-		onSuccess: ({ data, message }) => {
-			console.log("OTP verification successful for: ", data?.user?.email);
+		onSuccess: ({ message, data }) => {
+			console.log("OTP verification successful for:", data?.user?.email);
 
 			if (data?.user) {
-				login(data.user, ""); // Empty token since we're using cookies
-				toast.success(message || "Email verified successfully");
+				// Login the user
+				login(data.user, data.accessToken || "");
+				toast.success(message || "Email verified successfully!");
 
 				// Clear stored email
 				sessionStorage.removeItem("otp-email");
 
-				// Invalidate auth check to refresh
+				// Invalidate auth check
 				queryClient.invalidateQueries({ queryKey: ["authCheck"] });
 
+				// Navigate to dashboard
 				setTimeout(() => {
 					navigate("/dashboard");
 				}, 100);
 			}
 		},
 		onError: (error: AxiosError<ApiError>) => {
-			console.log("OTP verification error: ", error.response?.data);
+			console.error("OTP verification error:", error.response?.data);
 			const errorMessage =
 				error.response?.data?.message || "OTP verification failed";
 			toast.error(errorMessage);
@@ -152,7 +158,7 @@ export function useAuth() {
 	// Forgot Password mutation
 	const forgotPasswordMutation = useMutation({
 		mutationFn: async (data: ForgotPasswordData) => {
-			console.log("Requesting password reset for: ", data.email);
+			console.log("Requesting password reset for:", data.email);
 			const response = await api.post<ApiResponse>(
 				"/auth/forgot-password",
 				data,
@@ -160,7 +166,9 @@ export function useAuth() {
 			return response.data;
 		},
 		onSuccess: ({ message }) => {
-			toast.success(message || "Password reset email sent");
+			toast.success(
+				message || "Password reset email sent! Please check your inbox.",
+			);
 			setTimeout(() => {
 				navigate("/auth");
 			}, 100);
@@ -186,18 +194,18 @@ export function useAuth() {
 			const response = await api.patch<
 				ApiResponse<{
 					user: User;
+					accessToken: string;
 				}>
 			>(`/auth/reset-password/${token}`, { password });
-
 			return response.data;
 		},
-		onSuccess: ({ data, message }) => {
-			console.log("Password reset successful", data?.user?.email);
-			if (data?.user) {
-				login(data.user, ""); // Empty token since we're using cookies
-				toast.success(message || "Password reset successful");
+		onSuccess: ({ message, data }) => {
+			console.log("Password reset successful for:", data?.user?.email);
 
-				// Invalidate auth check to refresh
+			if (data?.user) {
+				login(data.user, data.accessToken || "");
+				toast.success(message || "Password reset successful!");
+
 				queryClient.invalidateQueries({ queryKey: ["authCheck"] });
 
 				setTimeout(() => {
@@ -217,14 +225,13 @@ export function useAuth() {
 	const handleLogout = async () => {
 		try {
 			await api.post("/auth/logout");
+			toast.success("Logged out successfully");
 		} catch (error) {
-			console.error("Logout API call failed", error);
+			console.error("Logout API call failed:", error);
 		} finally {
 			logout();
-			toast.success("Logged out successfully");
-			setTimeout(() => {
-				navigate("/auth");
-			}, 100);
+			queryClient.clear();
+			navigate("/auth");
 		}
 	};
 
@@ -238,7 +245,7 @@ export function useAuth() {
 			verifyOtpMutation.isPending ||
 			forgotPasswordMutation.isPending ||
 			resetPasswordMutation.isPending ||
-			(isCheckingAuth && isAuthenticated), // Only show loading if checking and we think we're authenticated
+			(isCheckingAuth && isAuthenticated),
 
 		// Actions
 		login: loginMutation.mutate,
