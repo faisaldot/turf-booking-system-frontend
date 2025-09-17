@@ -26,6 +26,7 @@ export interface ApiResponse<T = any> {
 
 // API Error types
 export interface ApiError {
+	error: string;
 	message: string;
 	errors?: Array<{
 		path: string[];

@@ -24,7 +24,8 @@ export const registerSchema = z.object({
 		.string()
 		.min(11, "Phone number must be at least 11 digits")
 		.max(14, "Phone number must not exceed 14 digits")
-		.trim(),
+		.trim()
+		.optional(),
 });
 
 export const verifyOtpSchema = z.object({
@@ -49,7 +50,7 @@ export const resetPasswordSchema = z.object({
 // Booking Schema
 export const createBookingSchema = z
 	.object({
-		turf: z.string(),
+		turf: z.string().trim(),
 		date: z
 			.date({
 				error: "Please select a date",

@@ -6,31 +6,38 @@ interface AuthState {
 	user: User | null;
 	isAuthenticated: boolean;
 	isLoading: boolean;
+	accessToken: string | null;
 }
 
-interface AuthAction {
+interface AuthActions {
 	setUser: (user: User) => void;
-	login: (user: User, accessToken: string, refreshToken?: string) => void;
+	setTokens: (accessToken: string | null) => void;
+	login: (user: User, accessToken: string) => void;
 	logout: () => void;
 	updateUser: (updates: Partial<User>) => void;
 	setLoading: (loading: boolean) => void;
 	clearAuth: () => void;
 }
 
-export const authStore = create<AuthState & AuthAction>()(
+export const authStore = create<AuthState & AuthActions>()(
 	persist(
 		(set, get) => ({
 			user: null,
 			isAuthenticated: false,
 			isLoading: false,
+			accessToken: null,
 
 			setUser: (user) => set({ user, isAuthenticated: true }),
 
-			login: (user) =>
+			// New action to update tokens separately
+			setTokens: (accessToken) => set({ accessToken }),
+
+			login: (user, accessToken) =>
 				set({
 					user,
 					isAuthenticated: true,
 					isLoading: false,
+					accessToken,
 				}),
 
 			logout: () => {
@@ -38,6 +45,7 @@ export const authStore = create<AuthState & AuthAction>()(
 					user: null,
 					isAuthenticated: false,
 					isLoading: false,
+					accessToken: null,
 				});
 			},
 
@@ -56,7 +64,7 @@ export const authStore = create<AuthState & AuthAction>()(
 				user: state.user,
 				isAuthenticated: state.isAuthenticated,
 			}),
-			version: 2, // Increment version to clear old data with tokens
+			version: 2,
 		},
 	),
 );

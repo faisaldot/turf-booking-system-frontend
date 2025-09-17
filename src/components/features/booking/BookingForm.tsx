@@ -1,11 +1,12 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { AxiosError } from "axios";
-import { Calendar, Clock, DollarSign } from "lucide-react";
+import { Calendar } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Link } from "react-router";
 import { toast } from "sonner";
+import type { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,11 +26,12 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
-import { usePayment } from "@/hooks/api/usePayment"; // NEW
+import { usePayment } from "@/hooks/api/usePayment";
 import { useAuth } from "@/hooks/auth/useAuth";
 import api from "@/lib/api";
 import { createBookingSchema } from "@/lib/validation";
 import type {
+	ApiError,
 	ApiResponse,
 	AvailabilitySlot,
 	Booking,
@@ -37,15 +39,14 @@ import type {
 	TurfAvailability,
 } from "@/types/api.types";
 
+// Schema for form validation.
 const formSchema = createBookingSchema.pick({
 	date: true,
 	startTime: true,
+	turf: true,
 });
 
-type BookingFormData = {
-	date: Date;
-	startTime: string;
-};
+type BookingFormData = z.infer<typeof formSchema>;
 
 interface BookingFormProps {
 	turfId: string;
@@ -65,6 +66,7 @@ export default function BookingForm({ turfId }: BookingFormProps) {
 		defaultValues: {
 			date: selectedDate,
 			startTime: "",
+			turf: turfId,
 		},
 	});
 
@@ -100,7 +102,7 @@ export default function BookingForm({ turfId }: BookingFormProps) {
 				initPayment(booking._id);
 			}
 		},
-		onError: (error: AxiosError<any>) => {
+		onError: (error: AxiosError<ApiError>) => {
 			const errorMessage =
 				error.response?.data?.message || "Failed to create booking.";
 			toast.error(errorMessage);

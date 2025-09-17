@@ -46,19 +46,28 @@ export function useAuth() {
 	const loginMutation = useMutation({
 		mutationFn: async (credentials: LoginData) => {
 			console.log("Attemting login with:", credentials);
-			const response = await api.post<ApiResponse<{ user: User }>>(
-				"/auth/login",
-				credentials,
-			);
+			const response = await api.post<
+				ApiResponse<{
+					user: User;
+					accessToken: string;
+				}>
+			>("/auth/login", credentials);
 
-			return response.data;
+			const loginData = response.data as any;
+			return {
+				message: loginData.message,
+				data: {
+					user: loginData?.user,
+					accessToken: loginData?.accessToken,
+				},
+			};
 		},
 		onSuccess: ({ message, data }) => {
-			console.log("Login successfull:", data?.user.email);
+			console.log("Login successfully:", data?.user?.email);
 
-			if (data?.user) {
-				login(data.user);
-				toast.success(message || "Login successfull");
+			if (data) {
+				login(data.user, data.accessToken);
+				toast.success(message);
 				navigate("/dashboard");
 			}
 		},
@@ -103,6 +112,8 @@ export function useAuth() {
 			const response = await api.post<
 				ApiResponse<{
 					user: User;
+					accessToken: string;
+					refreshToken: string;
 				}>
 			>("/auth/verify-otp", data);
 
@@ -111,7 +122,8 @@ export function useAuth() {
 		onSuccess: ({ data, message }) => {
 			console.log("OTP verification successful for: ", data?.user?.email);
 			if (data?.user) {
-				login(data.user);
+				// The backend now returns the accessToken in the body to store in memory.
+				login(data.user, data.accessToken);
 				toast.success(message || "Email verified successfully");
 				sessionStorage.removeItem("otp-email");
 				navigate("/dashboard");
@@ -161,6 +173,7 @@ export function useAuth() {
 				ApiResponse<{
 					user: User;
 					accessToken: string;
+					refreshToken: string;
 				}>
 			>(`/auth/reset-password/${token}`, { password });
 
@@ -169,7 +182,7 @@ export function useAuth() {
 		onSuccess: ({ data, message }) => {
 			console.log("Password reset successful", data?.user?.email);
 			if (data?.user) {
-				login(data.user);
+				login(data.user, data.accessToken);
 				toast.success(message || "Password reset successful");
 				navigate("/dashboard");
 			}
@@ -185,6 +198,7 @@ export function useAuth() {
 	// Logout function
 	const handleLogout = async () => {
 		try {
+			// This request will clear the HttpOnly cookies on the backend.
 			await api.post("/auth/logout");
 		} catch (error) {
 			console.error("Logout API call failed", error);

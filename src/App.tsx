@@ -15,6 +15,7 @@ import PaymentFailedPage from "./pages/payment/PaymentFailed";
 import PaymentSuccessPage from "./pages/payment/PaymentSuccess";
 import TurfDetailsPage from "./pages/turfs/TurfDetails";
 import TurfListingPage from "./pages/turfs/TurfPage";
+import PaymentCancelledPage from "./pages/payment/PaymentCancelled";
 
 function App() {
 	const { isLoading } = useAuth();
@@ -50,6 +51,7 @@ function App() {
 						{/* Payment Callback Routes */}
 						<Route path="booking-success" element={<PaymentSuccessPage />} />
 						<Route path="booking-failed" element={<PaymentFailedPage />} />
+						<Route path="booking-cancel" element={<PaymentCancelledPage />} />
 
 						{/* Protected Routes */}
 						<Route

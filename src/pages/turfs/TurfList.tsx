@@ -82,7 +82,7 @@ export default function TurfList() {
 						</span>
 						{data.meta.totalPages && (
 							<span className="text-xs">
-								({data.meta.totalPages} total items)
+								({data.meta.totalItems} total items)
 							</span>
 						)}
 					</div>

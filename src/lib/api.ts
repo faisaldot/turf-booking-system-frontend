@@ -4,6 +4,7 @@ import axios, {
 	type AxiosResponse,
 } from "axios";
 import { authStore } from "@/store/auth";
+import type { ApiError } from "@/types/api.types";
 
 interface CustomAxiosRequestConfig extends AxiosRequestConfig {
 	_retry?: boolean;
@@ -22,7 +23,10 @@ export const api = axios.create({
 
 async function refreshAccessToken() {
 	try {
-		await api.post("/auth/refresh-token", {});
+		const response = await api.post("/auth/refresh-token", {});
+		if (response.data?.accessToken) {
+			authStore.getState().setTokens(response.data.accessToken);
+		}
 		return true;
 	} catch (error) {
 		console.error("Token refresh failed: ", error);
@@ -33,11 +37,15 @@ async function refreshAccessToken() {
 // Response interceptor for error handling and token refresh
 api.interceptors.response.use(
 	(response: AxiosResponse) => response,
-	async (error: AxiosError) => {
+	async (error: AxiosError<ApiError>) => {
 		const originalRequest = error.config as CustomAxiosRequestConfig;
 
 		// Handle token refresh on 401 error
-		if (error.response?.status === 401 && !originalRequest._retry) {
+		if (
+			error.response?.status === 401 &&
+			error.response.data?.error === "TOKEN_EXPIRED" &&
+			!originalRequest._retry
+		) {
 			originalRequest._retry = true;
 
 			try {
