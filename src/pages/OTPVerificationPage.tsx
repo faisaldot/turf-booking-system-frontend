@@ -1,4 +1,4 @@
-import { OTPVerification } from "@/components/features/auth/OTPVerification";
+import OTPVerification from "@/components/features/auth/OTPVerification";
 
 export default function OTPVerificationPage() {
 	return (

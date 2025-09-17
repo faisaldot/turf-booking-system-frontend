@@ -4,7 +4,6 @@ import axios, {
 	type AxiosResponse,
 } from "axios";
 import { authStore } from "@/store/auth";
-import type { ApiError } from "@/types/api.types";
 
 interface CustomAxiosRequestConfig extends AxiosRequestConfig {
 	_retry?: boolean;
@@ -24,12 +23,9 @@ export const api = axios.create({
 async function refreshAccessToken() {
 	try {
 		const response = await api.post("/auth/refresh-token", {});
-		if (response.data?.accessToken) {
-			authStore.getState().setTokens(response.data.accessToken);
-		}
-		return true;
+		return response.status === 200;
 	} catch (error) {
-		console.error("Token refresh failed: ", error);
+		console.error("Token refresh failed:", error);
 		throw error;
 	}
 }
@@ -37,29 +33,62 @@ async function refreshAccessToken() {
 // Response interceptor for error handling and token refresh
 api.interceptors.response.use(
 	(response: AxiosResponse) => response,
-	async (error: AxiosError<ApiError>) => {
+	async (error: AxiosError) => {
 		const originalRequest = error.config as CustomAxiosRequestConfig;
 
-		// Handle token refresh on 401 error
+		// Don't retry auth endpoints or if already retried
+		const isAuthEndpoint =
+			originalRequest.url?.includes("/auth/") ||
+			originalRequest.url?.includes("/protected");
+
 		if (
 			error.response?.status === 401 &&
-			error.response.data?.error === "TOKEN_EXPIRED" &&
-			!originalRequest._retry
+			!originalRequest._retry &&
+			!isAuthEndpoint
 		) {
 			originalRequest._retry = true;
 
 			try {
-				await refreshAccessToken();
-				// Token is now refreshed in cookies, retry the original request
-				return api(originalRequest);
+				const refreshSucceeded = await refreshAccessToken();
+				if (refreshSucceeded) {
+					// Token refreshed successfully, retry the original request
+					return api(originalRequest);
+				}
 			} catch (refreshError) {
-				console.error("Token refresh failed: ", refreshError);
-				authStore.getState().logout();
-				window.location.href = "/auth";
-				return Promise.reject(refreshError);
+				console.error("Token refresh failed:", refreshError);
+				// Only logout if we're currently authenticated
+				const { isAuthenticated, logout } = authStore.getState();
+				if (isAuthenticated) {
+					logout();
+					// Redirect to auth page if not already there
+					if (!window.location.pathname.includes("/auth")) {
+						window.location.href = "/auth";
+					}
+				}
 			}
 		}
 
+		// For auth endpoints, don't automatically logout on 401
+		if (error.response?.status === 401 && isAuthEndpoint) {
+			console.log(
+				"Auth endpoint returned 401 - this is expected for unauthenticated requests",
+			);
+		}
+
+		return Promise.reject(error);
+	},
+);
+
+// Request interceptor to add additional headers if needed
+api.interceptors.request.use(
+	(config) => {
+		// Log API calls in development
+		if (import.meta.env.DEV) {
+			console.log(`API ${config.method?.toUpperCase()}: ${config.url}`);
+		}
+		return config;
+	},
+	(error) => {
 		return Promise.reject(error);
 	},
 );

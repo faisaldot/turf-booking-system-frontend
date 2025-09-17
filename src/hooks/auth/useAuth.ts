@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { AxiosError } from "axios";
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
@@ -16,6 +16,7 @@ import type {
 
 export function useAuth() {
 	const navigate = useNavigate();
+	const queryClient = useQueryClient();
 	const { login, logout, user, isAuthenticated, setUser } = authStore();
 
 	// Check authentication status
@@ -26,19 +27,22 @@ export function useAuth() {
 				const response =
 					await api.get<ApiResponse<{ user: User }>>("/protected");
 				return response.data.data;
-			} catch {
+			} catch (error) {
 				// if auth check fails, user is not authenticated
+				console.log("Auth check failed:", error);
 				return null;
 			}
 		},
+		enabled: isAuthenticated, // Only run if we think user is authenticated
 		retry: false,
 		refetchOnWindowFocus: false,
 		staleTime: 5 * 60 * 1000, // 5 minutes
 	});
 
-	if (authCheckData?.user && !isAuthenticated) {
+	if (authCheckData?.user && !user) {
 		setUser(authCheckData.user);
-	} else if (!authCheckData && isAuthenticated) {
+	} else if (!authCheckData && isAuthenticated && !isCheckingAuth) {
+		// Only logout if we're not currently checking and we get no data
 		logout();
 	}
 
@@ -53,22 +57,21 @@ export function useAuth() {
 				}>
 			>("/auth/login", credentials);
 
-			const loginData = response.data as any;
-			return {
-				message: loginData.message,
-				data: {
-					user: loginData?.user,
-					accessToken: loginData?.accessToken,
-				},
-			};
+			return response.data;
 		},
 		onSuccess: ({ message, data }) => {
-			console.log("Login successfully:", data?.user?.email);
+			console.log("Login successfully:", data?.user.email);
 
-			if (data) {
-				login(data.user, data.accessToken);
-				toast.success(message);
-				navigate("/dashboard");
+			if (data?.user) {
+				login(data.user, "");
+				toast.success(message || "Login successful");
+
+				// Invalidate auth check to refresh
+				queryClient.invalidateQueries({ queryKey: ["authCheck"] });
+
+				setTimeout(() => {
+					navigate("/dashboard");
+				}, 100);
 			}
 		},
 		onError: (error: AxiosError<ApiError>) => {
@@ -92,9 +95,12 @@ export function useAuth() {
 		onSuccess: ({ message, data }) => {
 			console.log("Registration successful", data?.email);
 			toast.success(message || "Registration successful");
+
 			if (data?.email) {
 				sessionStorage.setItem("otp-email", data.email);
-				navigate("/auth/verify-otp");
+				setTimeout(() => {
+					navigate("/auth/verify-otp");
+				}, 100);
 			}
 		},
 		onError: (error: AxiosError<ApiError>) => {
@@ -112,8 +118,6 @@ export function useAuth() {
 			const response = await api.post<
 				ApiResponse<{
 					user: User;
-					accessToken: string;
-					refreshToken: string;
 				}>
 			>("/auth/verify-otp", data);
 
@@ -121,12 +125,20 @@ export function useAuth() {
 		},
 		onSuccess: ({ data, message }) => {
 			console.log("OTP verification successful for: ", data?.user?.email);
+
 			if (data?.user) {
-				// The backend now returns the accessToken in the body to store in memory.
-				login(data.user, data.accessToken);
+				login(data.user, ""); // Empty token since we're using cookies
 				toast.success(message || "Email verified successfully");
+
+				// Clear stored email
 				sessionStorage.removeItem("otp-email");
-				navigate("/dashboard");
+
+				// Invalidate auth check to refresh
+				queryClient.invalidateQueries({ queryKey: ["authCheck"] });
+
+				setTimeout(() => {
+					navigate("/dashboard");
+				}, 100);
 			}
 		},
 		onError: (error: AxiosError<ApiError>) => {
@@ -149,7 +161,9 @@ export function useAuth() {
 		},
 		onSuccess: ({ message }) => {
 			toast.success(message || "Password reset email sent");
-			navigate("/auth");
+			setTimeout(() => {
+				navigate("/auth");
+			}, 100);
 		},
 		onError: (error: AxiosError<ApiError>) => {
 			console.error("Forgot password error:", error.response?.data);
@@ -172,8 +186,6 @@ export function useAuth() {
 			const response = await api.patch<
 				ApiResponse<{
 					user: User;
-					accessToken: string;
-					refreshToken: string;
 				}>
 			>(`/auth/reset-password/${token}`, { password });
 
@@ -182,9 +194,15 @@ export function useAuth() {
 		onSuccess: ({ data, message }) => {
 			console.log("Password reset successful", data?.user?.email);
 			if (data?.user) {
-				login(data.user, data.accessToken);
+				login(data.user, ""); // Empty token since we're using cookies
 				toast.success(message || "Password reset successful");
-				navigate("/dashboard");
+
+				// Invalidate auth check to refresh
+				queryClient.invalidateQueries({ queryKey: ["authCheck"] });
+
+				setTimeout(() => {
+					navigate("/dashboard");
+				}, 100);
 			}
 		},
 		onError: (error: AxiosError<ApiError>) => {
@@ -198,14 +216,15 @@ export function useAuth() {
 	// Logout function
 	const handleLogout = async () => {
 		try {
-			// This request will clear the HttpOnly cookies on the backend.
 			await api.post("/auth/logout");
 		} catch (error) {
 			console.error("Logout API call failed", error);
 		} finally {
 			logout();
-			navigate("/auth");
 			toast.success("Logged out successfully");
+			setTimeout(() => {
+				navigate("/auth");
+			}, 100);
 		}
 	};
 
@@ -219,7 +238,7 @@ export function useAuth() {
 			verifyOtpMutation.isPending ||
 			forgotPasswordMutation.isPending ||
 			resetPasswordMutation.isPending ||
-			isCheckingAuth,
+			(isCheckingAuth && isAuthenticated), // Only show loading if checking and we think we're authenticated
 
 		// Actions
 		login: loginMutation.mutate,
