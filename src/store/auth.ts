@@ -64,7 +64,7 @@ export const authStore = create<AuthState & AuthActions>()(
 				user: state.user,
 				isAuthenticated: state.isAuthenticated,
 			}),
-			version: 2,
+			version: 1,
 		},
 	),
 );

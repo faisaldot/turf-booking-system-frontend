@@ -9,21 +9,34 @@ interface PaymentInitResponse {
 }
 
 export function usePayment() {
-	const initPaymentMutation = useMutation({
-		mutationFn: async (bookingId: string) => {
+	const initPaymentMutation = useMutation<
+		ApiResponse<PaymentInitResponse>,
+		AxiosError<ApiError>,
+		string
+	>({
+		mutationFn: async (bookingId) => {
+			console.log("Initiating payment for booking ID:", bookingId);
 			const response = await api.post<ApiResponse<PaymentInitResponse>>(
 				`/payments/init/${bookingId}`,
 			);
+			console.log("Payment API response:", response.data);
 			return response.data;
 		},
 		onSuccess: (data) => {
-			if (data?.data?.url) {
-				window.location.href = data.data.url;
+			console.log("Payment initialization successful:", data);
+			const paymentUrl = data?.data?.url;
+			console.log("Payment URL:", paymentUrl);
+			if (paymentUrl) {
+				console.log("Redirecting to:", paymentUrl);
+				window.location.href = paymentUrl;
 			} else {
+				console.error("No payment URL in response:", data);
 				toast.error("Failed to get payment URL.");
 			}
 		},
-		onError: (error: AxiosError<ApiError>) => {
+		onError: (error) => {
+			console.error("Payment initialization error:", error);
+			console.error("Error response:", error.response?.data);
 			const errorMessage =
 				error.response?.data.message || "Payment initialization failed";
 			toast.error(errorMessage);
@@ -31,6 +44,9 @@ export function usePayment() {
 	});
 	return {
 		initPayment: initPaymentMutation.mutate,
+		initPaymentAsync: initPaymentMutation.mutateAsync,
 		isLoading: initPaymentMutation.isPending,
+		error: initPaymentMutation.error,
+		isSuccess: initPaymentMutation.isSuccess,
 	};
 }

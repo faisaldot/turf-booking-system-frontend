@@ -1,3 +1,4 @@
+// Booking form - Fixed version
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { AxiosError } from "axios";
@@ -58,7 +59,7 @@ export default function BookingForm({ turfId }: BookingFormProps) {
 	);
 
 	const { isAuthenticated, user } = useAuth();
-	const { initPayment, isLoading: isPaymentLoading } = usePayment();
+	const { initPaymentAsync, isLoading: isPaymentLoading } = usePayment();
 	const queryClient = useQueryClient();
 
 	const form = useForm<BookingFormData>({
@@ -87,41 +88,89 @@ export default function BookingForm({ turfId }: BookingFormProps) {
 
 	// Mutation to create a new booking
 	const bookingMutation = useMutation({
-		mutationFn: async (data: CreateBookingData) => {
+		mutationFn: async (data: CreateBookingData): Promise<Booking> => {
+			console.log("Making booking API call with:", data);
 			const response = await api.post<ApiResponse<Booking>>("/bookings", data);
-			return response.data.data;
-		},
-		onSuccess: (booking) => {
-			if (booking) {
-				toast.success(
-					"Booking created successfully. Redirecting to payment...",
-				);
-				queryClient.invalidateQueries({
-					queryKey: ["turf-availability", turfId, selectedDate],
-				});
-				initPayment(booking._id);
-			}
+			console.log("Booking API response:", response.data);
+			console.log("Response structure:", {
+				hasData: !!response.data.data,
+				hasBooking: !!(response.data as any).booking,
+				hasId: !!(response.data as any).id,
+				hasUnderscore: !!(response.data as any)._id,
+				rawResponse: response.data,
+			});
+
+			// Try different possible response structures
+			return (
+				response.data.data ||
+				(response.data as any).booking ||
+				(response.data as any)
+			);
 		},
 		onError: (error: AxiosError<ApiError>) => {
+			console.error("Booking mutation error:", error);
 			const errorMessage =
 				error.response?.data?.message || "Failed to create booking.";
 			toast.error(errorMessage);
 		},
 	});
 
-	const onSubmit = (data: BookingFormData) => {
-		const startHour = Number(data.startTime.split(":")[0]);
-		const endHour = startHour + 1;
-		const endTime = `${String(endHour).padStart(2, "0")}:${
-			data.startTime.split(":")[1]
-		}`;
+	const onSubmit = async (data: BookingFormData) => {
+		try {
+			const startHour = Number(data.startTime.split(":")[0]);
+			const endHour = startHour + 1;
+			const endTime = `${String(endHour).padStart(2, "0")}:${
+				data.startTime.split(":")[1]
+			}`;
 
-		bookingMutation.mutate({
-			turf: turfId,
-			date: data.date,
-			startTime: data.startTime,
-			endTime: endTime,
-		});
+			const bookingData = {
+				turf: turfId,
+				date: data.date,
+				startTime: data.startTime,
+				endTime: endTime,
+			};
+
+			console.log("Submitting booking data:", bookingData);
+
+			// First, create the booking
+			const booking = await bookingMutation.mutateAsync(bookingData);
+
+			console.log("Booking response:", booking);
+			console.log("Booking created:", booking);
+
+			// Check multiple possible response formats
+			const bookingId = booking._id;
+			// booking?._id || booking?.id || (booking as any)?.bookingId;
+
+			if (bookingId) {
+				toast.success(
+					"Booking created successfully. Redirecting to payment...",
+				);
+
+				// Invalidate queries
+				queryClient.invalidateQueries({
+					queryKey: ["turf-availability", turfId, selectedDate],
+				});
+
+				console.log("Initializing payment for booking ID:", bookingId);
+
+				// Then initialize payment and wait for it to complete
+				await initPaymentAsync(bookingId);
+			} else {
+				toast.error("Booking created but no booking ID received");
+				console.error("Invalid booking response:", booking);
+
+				// If you know the booking was created (check network tab),
+				// you could try using the response directly or check what ID field exists
+				console.log(
+					"Available properties on booking object:",
+					Object.keys(booking || {}),
+				);
+			}
+		} catch (error) {
+			// Error handling is already done in the individual mutation handlers
+			console.error("Booking or payment initialization failed:", error);
+		}
 	};
 
 	const availableSlots =
