@@ -2,13 +2,15 @@ import { useEffect, useState } from "react";
 import { Route, Routes } from "react-router";
 import { Toaster } from "sonner";
 import { ResetPassword } from "./components/features/auth/ResetPassword";
+import BookingList from "./components/features/dashboard/BookingList";
+import DashboardLayout from "./components/layout/DashBoardLayout";
 import { ErrorBoundary } from "./components/layout/ErrorBoundary";
 import MainLayout from "./components/layout/MainLayout";
 import ProtectedRoute from "./components/layout/ProtectedRoute";
 import { ThemeProvider } from "./components/theme-provider";
 import { AppLoading } from "./components/ui/appLoading";
 import AuthPage from "./pages/AuthPage";
-import DashboardPage from "./pages/DashboardPage";
+import ProfilePage from "./pages/dashboard/ProfilePage";
 import HomePage from "./pages/Home";
 import NotFoundPage from "./pages/NotFoundPage";
 import OTPVerificationPage from "./pages/OTPVerificationPage";
@@ -75,10 +77,15 @@ function App() {
 							path="dashboard"
 							element={
 								<ProtectedRoute>
-									<DashboardPage />
+									<DashboardLayout />
 								</ProtectedRoute>
 							}
-						/>
+						>
+							<Route index element={<BookingList />} />
+							<Route path="bookings" element={<BookingList />} />
+							<Route path="profile" element={<ProfilePage />} />
+							<Route />
+						</Route>
 
 						{/* Role based protected route */}
 						<Route
