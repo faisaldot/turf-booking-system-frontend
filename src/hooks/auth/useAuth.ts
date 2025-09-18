@@ -4,7 +4,6 @@ import { useNavigate } from "react-router";
 import { toast } from "sonner";
 import api from "@/lib/api";
 import { authStore } from "@/store/auth";
-import { uiStore } from "@/store/ui";
 import type {
 	ApiError,
 	ApiResponse,
