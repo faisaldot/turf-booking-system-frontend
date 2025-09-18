@@ -1,7 +1,9 @@
 import { Link } from "react-router";
 import { buttonVariants } from "@/components/ui/button";
+import { useAuth } from "@/hooks/auth/useAuth";
 
 export default function HomePage() {
+	const { isAuthenticated } = useAuth();
 	return (
 		<div className="relative flex flex-col items-center justify-center px-6 py-20 text-center">
 			<div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-background to-background -z-10" />
@@ -19,9 +21,11 @@ export default function HomePage() {
 				<Link to="/turfs" className={buttonVariants({ variant: "default" })}>
 					Explore Turfs
 				</Link>
-				<Link to="/auth" className={buttonVariants({ variant: "outline" })}>
-					Sign In
-				</Link>
+				{!isAuthenticated && (
+					<Link to="/auth" className={buttonVariants({ variant: "outline" })}>
+						Sign In
+					</Link>
+				)}
 			</div>
 		</div>
 	);

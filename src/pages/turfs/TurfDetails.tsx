@@ -19,13 +19,7 @@ import { useParams } from "react-router";
 import BookingForm from "@/components/features/booking/BookingForm";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageLoader } from "@/components/ui/loading";
 import { Separator } from "@/components/ui/separator";
 import api from "@/lib/api";
@@ -33,6 +27,8 @@ import { cn } from "@/lib/utils";
 import type { ApiResponse, Turf } from "@/types/api.types";
 
 // Amenity icon mapping
+
+// biome-ignore lint/suspicious/noExplicitAny: <explanation
 const amenityIcons: Record<string, any> = {
 	wifi: Wifi,
 	parking: Car,
@@ -56,7 +52,7 @@ export default function TurfDetailsPage() {
 	});
 
 	if (isLoading) {
-		return <PageLoader />;
+		return <PageLoader message="Loading turf details..." />;
 	}
 
 	if (error || !data?.data) {
@@ -208,9 +204,9 @@ export default function TurfDetailsPage() {
 										</p>
 									</div>
 
-									{turf?.pricingRules.map((rule, index) => (
+									{turf?.pricingRules.map((rule) => (
 										<Card
-											key={index}
+											key={crypto.randomUUID()}
 											className="border-l-4 border-l-blue-500 shadow-md"
 										>
 											<CardContent className="p-4">
@@ -219,9 +215,9 @@ export default function TurfDetailsPage() {
 													{rule.dayType.toUpperCase()} RATES
 												</h4>
 												<div className="grid gap-2">
-													{rule.timeSlots.map((slot, i) => (
+													{rule.timeSlots.map((slot) => (
 														<div
-															key={i}
+															key={crypto.randomUUID()}
 															className="flex justify-between items-center p-2 bg-gray-50 dark:bg-gray-800 rounded-lg"
 														>
 															<span className="text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -273,7 +269,7 @@ export default function TurfDetailsPage() {
 											<div className="flex gap-0.5">
 												{[...Array(5)].map((_, i) => (
 													<Star
-														key={i}
+														key={crypto.randomUUID()}
 														className={cn(
 															"h-3 w-3",
 															i < 4

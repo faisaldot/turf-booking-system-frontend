@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Route, Routes } from "react-router";
 import { Toaster } from "sonner";
 import { ResetPassword } from "./components/features/auth/ResetPassword";
@@ -5,7 +6,7 @@ import { ErrorBoundary } from "./components/layout/ErrorBoundary";
 import MainLayout from "./components/layout/MainLayout";
 import ProtectedRoute from "./components/layout/ProtectedRoute";
 import { ThemeProvider } from "./components/theme-provider";
-import { useAuth } from "./hooks/auth/useAuth";
+import { AppLoading } from "./components/ui/appLoading";
 import AuthPage from "./pages/AuthPage";
 import DashboardPage from "./pages/DashboardPage";
 import HomePage from "./pages/Home";
@@ -17,17 +18,23 @@ import TurfDetailsPage from "./pages/turfs/TurfDetails";
 import TurfListingPage from "./pages/turfs/TurfPage";
 
 function App() {
-	const { isLoading, isAuthenticated } = useAuth();
+	const [isReady, setIsReady] = useState(false);
+
+	useEffect(() => {
+		const timer = setTimeout(() => {
+			setIsReady(true);
+		}, 250);
+
+		return () => clearTimeout(timer);
+	}, []);
 
 	// Show loading spinner while checking authentication on initial load
-	if (isLoading && !isAuthenticated) {
+	if (!isReady) {
 		return (
-			<div className="flex items-center justify-center min-h-screen">
-				<div className="text-center">
-					<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-					<p className="mt-2 text-sm text-muted-foreground">Loading...</p>
-				</div>
-			</div>
+			<AppLoading
+				message="Authenticating and loading your workspace..."
+				showSkeleton={false}
+			/>
 		);
 	}
 

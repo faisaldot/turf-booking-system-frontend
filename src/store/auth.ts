@@ -29,7 +29,6 @@ export const authStore = create<AuthState & AuthActions>()(
 
 			setUser: (user) => set({ user, isAuthenticated: true }),
 
-			// New action to update tokens separately
 			setTokens: (accessToken) => set({ accessToken }),
 
 			login: (user, accessToken) =>
@@ -64,7 +63,7 @@ export const authStore = create<AuthState & AuthActions>()(
 				user: state.user,
 				isAuthenticated: state.isAuthenticated,
 			}),
-			version: 1,
+			version: 2,
 		},
 	),
 );
